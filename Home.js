@@ -8,11 +8,15 @@ import {
   Button,
   Linking,
 } from "react-native";
-import MapView, { Marker, Callout } from "react-native-maps";
+import MapView, { Marker, Callout, UrlTile } from "react-native-maps";
 import Toast from "react-native-toast-message";
 import * as Location from "expo-location";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// 구글 지도 다크모드 스타일
+const darkMapStyle = require("./dark.json");
 
 export default function Home() {
   const seoulCityHall = {
@@ -28,6 +32,31 @@ export default function Home() {
   const [bins, setBins] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedBin, setSelectedBin] = useState(null);
+  const [theme, setTheme] = useState("light"); // 다크 모드가 기본값
+  const [isOsm, setIsOsm] = useState(false); // 오픈스트리트 맵 사용 상태
+
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      try {
+        const newTheme = await AsyncStorage.getItem('lightdark');
+        if (newTheme !== null && newTheme !== theme) {
+          setTheme(newTheme);
+        }
+  
+        const newMapType = await AsyncStorage.getItem('useOpenStreetMap');
+        if (newMapType !== null) {
+          setIsOsm(newMapType === 'true');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }, 500); // 여기서 500은 각 체크 사이의 밀리초 단위 시간 간격입니다. 필요에 따라 조정할 수 있습니다.
+  
+    // Cleanup function to clear the interval on component unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [theme]);  
 
   useEffect(() => {
     (async () => {
@@ -62,6 +91,76 @@ export default function Home() {
       }
     })();
   }, [mapRef]); // mapRef를 dependency로 추가
+
+  // 라이트모드 다크모드
+
+  useEffect(() => {
+    const fetchTheme = async () => {
+      try {
+        const storedTheme = await AsyncStorage.getItem("lightdark");
+        if (storedTheme) {
+          setTheme(storedTheme);
+        }
+      } catch (error) {
+        console.error("Failed to fetch theme:", error);
+      }
+    };
+
+    fetchTheme();
+  }, [theme]);
+
+  // 스타일을 동적으로 적용할 수 있는 객체
+  const dynamicStyles = {
+    map: {
+      ...styles.map,
+      backgroundColor: theme === "dark" ? "#000000" : "#ffffff",
+    },
+    toast: {
+      backgroundColor: theme === "dark" ? "#333333" : "#ffffff",
+      color: theme === "dark" ? "#ffffff" : "#000000",
+    },
+    button: {
+      backgroundColor: theme === "dark" ? "#444444" : "#007AFF",
+      color: theme === "dark" ? "#ffffff" : "#000000",
+    },
+    callout: {
+      backgroundColor: theme === "dark" ? "#333333" : "#ffffff",
+      color: theme === "dark" ? "#ffffff" : "#000000",
+    },
+    buttonContainer: {
+      backgroundColor: theme === "dark" ? "#333333" : "#ffffff",
+    },
+    iconColor: {
+      color: theme === "dark" ? "#ffffff" : "#000000",
+    },
+  };
+
+  // 오픈스트리트맵 다크모드
+  const osmTileUrl = theme === 'dark'
+    // ? "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
+    ? "https://tile.openstreetmap.org/{z}/{x}/{y}.png" // 다크모드
+    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // 라이트 모드
+
+  // 라이트모드 다크모드
+
+  // 오픈스트리트맵
+
+  useEffect(() => {
+    const fetchMapType = async () => {
+      try {
+        const storedMapType = await AsyncStorage.getItem("useOpenStreetMap");
+        if (storedMapType !== null) {
+          setIsOsm(storedMapType === "true");
+        }
+      } catch (error) {
+        console.error("Failed to fetch map type:", error);
+      }
+    };
+
+    fetchMapType();
+  }, [isOsm]);
+
+  // 오픈스트리트맵
 
   const calculateDistance = (latitudeDelta) => {
     // 선형 변환 상수
@@ -118,7 +217,7 @@ export default function Home() {
           appName === "naver" ? "네이버 지도" : "카카오맵"
         } 앱을 열 수 없습니다.`,
       });
-      console.error("Couldn't open the map app:", err);
+      console.error("앱을 여는데 실패했어요: ", err);
     });
   };
 
@@ -130,7 +229,9 @@ export default function Home() {
       borderRadius: 10,
       backgroundColor: "white",
       borderColor: "#ccc",
-      borderWidth: 1,
+      borderWidth: 0, // 테두리 없앰
+      ...styles.calloutContainer,
+      backgroundColor: dynamicStyles.callout.backgroundColor,
     },
     address: {
       fontWeight: "bold",
@@ -148,6 +249,9 @@ export default function Home() {
       color: "white",
       borderRadius: 5,
     },
+    text: {
+      color: dynamicStyles.callout.color,
+    },
   };
 
   const closeModalOnOutsideClick = (e) => {
@@ -161,9 +265,18 @@ export default function Home() {
       <MapView
         ref={(ref) => setMapRef(ref)}
         style={styles.map}
+        userInterfaceStyle={theme === "dark" ? "dark" : "light"}
         initialRegion={location}
         onRegionChangeComplete={handleRegionChange}
+        customMapStyle={theme === "dark" ? darkMapStyle : []}
+        mapType={isOsm ? 'none' : 'standard'} // 오픈스트리트맵을 사용하려면 mapType을 'none'으로 설정
       >
+        {isOsm && (
+          <UrlTile
+            urlTemplate={osmTileUrl}
+            maximumZ={19}
+          />
+        )}
         {location && <Marker coordinate={location} pinColor="blue" />}
         {bins.map((bin) => (
           <Marker
@@ -174,6 +287,8 @@ export default function Home() {
             }}
           >
             <Callout
+              tooltip={true}
+              style={calloutStyles.container}
               onPress={() => {
                 setSelectedBin(bin);
                 setModalVisible(true);
@@ -225,7 +340,7 @@ export default function Home() {
               }}
             >
               <TouchableOpacity
-                style={styles.customButton}
+                style={{ ...styles.customButton, ...dynamicStyles.button }}
                 onPress={() =>
                   openMap(
                     "naver",
@@ -237,7 +352,7 @@ export default function Home() {
                 <Text style={styles.buttonText}>네이버 지도</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.customButton}
+                style={{ ...styles.customButton, ...dynamicStyles.button }}
                 onPress={() =>
                   openMap(
                     "kakao",
@@ -249,7 +364,7 @@ export default function Home() {
                 <Text style={styles.buttonText}>카카오맵</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.customButton}
+                style={{ ...styles.customButton, ...dynamicStyles.button }}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.buttonText}>닫기</Text>
@@ -258,7 +373,9 @@ export default function Home() {
           </View>
         </View>
       </Modal>
-      <View style={styles.buttonContainer}>
+      <View
+        style={{ ...styles.buttonContainer, ...dynamicStyles.buttonContainer }}
+      >
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
@@ -272,7 +389,7 @@ export default function Home() {
             );
           }}
         >
-          <Ionicons name="add" size={24} color="black" />
+          <Ionicons name="add" size={24} style={dynamicStyles.iconColor} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -287,7 +404,7 @@ export default function Home() {
             );
           }}
         >
-          <Ionicons name="remove" size={24} color="black" />
+          <Ionicons name="remove" size={24} style={dynamicStyles.iconColor} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -302,10 +419,13 @@ export default function Home() {
             );
           }}
         >
-          <Ionicons name="navigate" size={24} color="black" />
+          <Ionicons name="navigate" size={24} style={dynamicStyles.iconColor} />
         </TouchableOpacity>
       </View>
-      <Toast />
+      <Toast
+        style={dynamicStyles.toast}
+        textStyle={{ color: dynamicStyles.toast.color }}
+      />
     </View>
   );
 }
@@ -316,9 +436,9 @@ const styles = StyleSheet.create({
   },
   modalOutside: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 반투명 배경
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // 반투명 배경
   },
   map: {
     flex: 1,
