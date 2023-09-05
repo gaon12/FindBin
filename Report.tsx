@@ -1,30 +1,28 @@
 import React from 'react';
-import { View } from 'react-native';
-import { Provider as PaperProvider } from 'react-native-paper';
-import { Tabs, TabScreen } from 'react-native-paper-tabs';
+
+import { NavigationContainer } from '@react-navigation/native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import First from './ReportTabs/First';
 import Second from './ReportTabs/Second';
-import Third from './ReportTabs/Third';
+import Thrid from './ReportTabs/Third';
+import { View, Text } from 'react-native';
 
-const Report = () => {
+const Tab = createMaterialTopTabNavigator();
+
+export default function App() {
   return (
-    <PaperProvider>
-      <View style={{ flex: 1, marginTop: 50 }}>
-        <Tabs>
-          <TabScreen label="A">
-            <First />
-          </TabScreen>
-          <TabScreen label="B">
-            <Second />
-          </TabScreen>
-          <TabScreen label="C">
-            <Third />
-          </TabScreen>
-        </Tabs>
-      </View>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <SafeAreaView style={{ flex: 1 }}>
+          <Tab.Navigator>
+            <Tab.Screen name="A" component={First} />
+            <Tab.Screen name="B" component={Second} />
+            <Tab.Screen name="C" component={Thrid} />
+          </Tab.Navigator>
+        </SafeAreaView>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
-};
-
-export default Report;
+}
