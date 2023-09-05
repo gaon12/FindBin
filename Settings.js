@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
-
+import { Platform } from "react-native";
 function Settings() {
   const [darkMode, setDarkMode] = useState(false);
   const [useOpenStreetMap, setUseOpenStreetMap] = useState(false);
@@ -132,28 +132,28 @@ function Settings() {
           <Switch value={darkMode} onValueChange={toggleDarkMode} />
         </View>
         <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
+        
+        {Platform.OS === "ios" && (
+  <>
+    <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+      지도 설정
+    </Text>
 
-        <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
-          지도 설정
+    <View style={styles.settingRow}>
+      <View style={styles.settingItem}>
+        <Icon name="map" size={20} color={darkMode ? "#fff" : "#000"} />
+        <Text
+          style={[
+            styles.settingText,
+            { color: darkMode ? "#fff" : "#000" },
+          ]}
+        >
+          오픈스트리트맵 사용
         </Text>
-        <View style={styles.settingRow}>
-          <View style={styles.settingItem}>
-            <Icon name="map" size={20} color={darkMode ? "#fff" : "#000"} />
-            <Text
-              style={[
-                styles.settingText,
-                { color: darkMode ? "#fff" : "#000" },
-              ]}
-            >
-              오픈스트리트맵 사용
-            </Text>
-          </View>
-          <Switch
-            value={useOpenStreetMap}
-            onValueChange={toggleOpenStreetMap}
-          />
-        </View>
-        <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
+      </View>
+    </View>
+  </>
+)}
 
         <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
           위치 정보 설정
