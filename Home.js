@@ -7,6 +7,7 @@ import {
     Text,
     Button,
     Linking,
+    Platform,
 } from "react-native";
 import MapView, { Marker, Callout, UrlTile } from "react-native-maps";
 import Toast from "react-native-toast-message";
@@ -275,7 +276,7 @@ export default function Home() {
                 initialRegion={location}
                 onRegionChangeComplete={handleRegionChange}
                 customMapStyle={theme === "dark" ? darkMapStyle : []}
-                mapType={isOsm ? 'none' : 'standard'} // 오픈스트리트맵을 사용하려면 mapType을 'none'으로 설정
+                mapType={Platform.OS === 'android' ? 'standard' : (isOsm ? 'none' : 'standard')} // 오픈스트리트맵을 사용하려면 mapType을 'none'으로 설정. 단, 안드로이드는 오픈스트리트맵 로드가 되지 않아 구글 지도로만 출력
             >
                 {isOsm && (
                     <UrlTile
