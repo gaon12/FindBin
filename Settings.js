@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Modal, View, StyleSheet, StatusBar, TouchableOpacity } from "react-native";
+import { Modal, View, StyleSheet, Platform, StatusBar, TouchableOpacity } from "react-native";
 import { Switch, Text, Title, Divider } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message";
-import { Platform } from "react-native";
 function Settings() {
   const [darkMode, setDarkMode] = useState(false);
   const [useOpenStreetMap, setUseOpenStreetMap] = useState(false);
