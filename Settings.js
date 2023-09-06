@@ -4,7 +4,10 @@ import { Switch, Text, Title, Divider } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import Icons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
+import { Linking } from 'react-native';
+
 function Settings() {
   const [darkMode, setDarkMode] = useState(false);
   const [useOpenStreetMap, setUseOpenStreetMap] = useState(false);
@@ -56,6 +59,15 @@ function Settings() {
 
   const handleVersionClick = () => {
     setClickCounter((prev) => prev + 1);
+  };
+
+  const handleAnnouncementClick = () => {
+    // 원하는 URL로 이동하는 코드 추가
+    // 예: 공지사항 페이지로 이동
+    const noticeURL = 'https://naver.com';
+    // 웹뷰를 열려면 해당 컴포넌트를 렌더링합니다.
+    Linking.openURL(noticeURL)
+    .catch((err) => console.error('Error opening URL: ', err));
   };
 
   useEffect(() => {
@@ -150,37 +162,42 @@ function Settings() {
           오픈스트리트맵 사용
         </Text>
       </View>
+      <Switch value={useOpenStreetMap} onValueChange={toggleOpenStreetMap} />
     </View>
   </>
 )}
 
-        <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
-          위치 정보 설정
-        </Text>
-        <View style={styles.settingRow}>
-          <View style={styles.settingItem}>
-            <Icon
-              name="map-marker"
-              size={20}
-              color={darkMode ? "#fff" : "#000"}
-            />
-            <Text
-              style={[
-                styles.settingText,
-                { color: darkMode ? "#fff" : "#000" },
-              ]}
-            >
-              GPS 사용
-            </Text>
-          </View>
-          <Switch value={useGPS} onValueChange={toggleGPS} />
-        </View>
+<Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+  위치 정보 설정
+</Text>
+<View style={styles.settingRow}>
+  <View style={styles.settingItem}>
+    <Icon
+      name="map-marker"
+      size={20}
+      color={darkMode ? "#fff" : "#000"}
+    />
+    <Text
+      style={[
+        styles.settingText,
+        { color: darkMode ? "#fff" : "#000" },
+      ]}
+    >
+      GPS 사용
+    </Text>
+  </View>
+  <Switch value={useGPS} onValueChange={toggleGPS} />
+</View>
+<Text style={[styles.description, { color: darkMode ? "#fff" : "#000" }]}>
+  GPS를 사용하면 현재 위치 정보를 더 정확하게 얻을 수 있습니다.
+</Text>
+
         <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
 
         <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
           앱 정보
         </Text>
-        <View style={styles.settingRow}>
+        <View style={[styles.settingRow, styles.anonymous]}>
           <View style={styles.settingItem}>
             <Icon
               name="database-lock"
@@ -201,6 +218,25 @@ function Settings() {
             onValueChange={toggleSendAnonymousData}
           />
         </View>
+        <TouchableOpacity onPress={handleAnnouncementClick}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingItem}>
+              <Icons
+                name="megaphone"
+                size={20}
+                color={darkMode ? "#fff" : "#000"}
+              />
+              <Text
+                style={[
+                  styles.settingText,
+                  { color: darkMode ? "#fff" : "#000" },
+                ]}
+              >
+                공지사항
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleVersionClick}>
           <View style={styles.settingRow}>
             <View style={styles.settingItem}>
@@ -254,7 +290,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     marginBottom: 16,
     fontWeight: "bold",
     marginTop: 20,
@@ -273,6 +309,9 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     marginHorizontal: 16,
     paddingVertical: 8,
+  },
+  anonymous: {
+    marginBottom: -5,
   },
   settingItem: {
     flexDirection: "row",

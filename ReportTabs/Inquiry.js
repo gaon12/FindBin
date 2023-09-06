@@ -1,129 +1,146 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Modal, StyleSheet, TextInput, TouchableOpacityComponent } from 'react-native';
+import { Alert, View, StyleSheet, Image, TouchableOpacity, Text } from 'react-native';
+import { TextInput, Button, Menu, Divider, Provider } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
 
-function Inquiry() {
-  const [data, setData] = useState([
-    { id: 1, label: '쓰레기통 존재 여부' },
-    { id: 2, label: '앱 버그' },
-    { id: 3, label: '앱 개선사항' },
-  ]);
+export default function App() {
+  const [category, setCategory] = useState(null);
+  const [content, setContent] = useState('');
+  const [images, setImages] = useState([]);
 
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [TitleText, setTitleText] = useState('');
-  const [contentText, setcontentText] = useState('');
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      quality: 1,
+    });
 
-  function handleDropdownPress() {
-    setModalVisible(!modalVisible);
-  }
+    console.log(result);
 
-  function handleItemPress(item) {
-    setSelectedItem(item);
-    setModalVisible(false);
-  }
+    if (!result.canceled && result.assets && result.assets[0]) {
+      if(images.length < 3) {
+        setImages([...images, result.assets[0].uri]);
+      } else {
+        Alert.alert(
+            '오류', // 제목
+            '최대 3장의 이미지만 추가할 수 있습니다.', //내용
+            [
+              { text: '확인', onPress: () => console.log('확인 버튼이 눌렸습니다.') },
+            ],
+          );
+      }
+    }
+  };
 
-  const modalHeight = data.length * 50 + 100; // 아이템 개수에 따라 높이 계산
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  const submit = () => {
+    // 서버에 데이터 전송 로직 추가
+  };
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <TextInput
-        placeholder="제목"
-        style={styles.textInput}
-        value={TitleText}
-        onChangeText={text => setTitleText(text)}
-      />
-
-      <TouchableOpacity
-        style={styles.dropdownButton}
-        onPress={handleDropdownPress}
-      >
-        <Text style={styles.dropdownButtonText}>
-          {selectedItem ? selectedItem.label : '선택하세요'}
-        </Text>
-      </TouchableOpacity>
-
-      <TextInput
-        multiline={true}
-        numberOfLines={4}
-        placeholder="텍스트 입력하기"
-        value={contentText}
-        onChangeText={text => setcontentText(text)}
-        style={styles.textArea}
-      />
-
-      <TouchableOpacity>
-        <Text>사진 첨부</Text>
-      </TouchableOpacity>
-
-      {modalVisible && (
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={[styles.modalContainer, { height: modalHeight }]}>
-            <View style={styles.modalContent}>
-              <FlatList
-                data={data}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity onPress={() => handleItemPress(item)}>
-                    <Text>{item.label}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text>닫기</Text>
+    <Provider>
+      <View style={styles.container}>
+        <View style={styles.menuContainer}>
+        <TextInput
+                  label="분류 선택"
+                  value={category}
+                  style={styles.menuInput}
+                  pointerEvents="none"
+                />
+        </View>
+        <TextInput
+          label="내용"
+          value={content}
+          onChangeText={text => setContent(text)}
+          style={styles.textInput}
+          mode='outlined'
+        />
+        <Button icon="camera" mode="contained" onPress={pickImage} style={styles.imageButton}>
+          이미지 선택
+        </Button>
+        <View style={styles.imagesContainer}>
+          {images.map((image, index) => (
+            <View key={index} style={styles.imageContainer}>
+              <Image source={{ uri: image }} style={styles.image} />
+              <TouchableOpacity style={styles.closeButton} onPress={() => removeImage(index)}>
+                <Text style={styles.closeButtonText}>X</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </Modal>
-      )}
-    </View>
+          ))}
+        </View>
+        <View style={styles.footer}>
+          <Button mode="contained" onPress={submit} style={styles.submitButton}>
+            제출
+          </Button>
+        </View>
+      </View>
+    </Provider>
   );
 }
 
 const styles = StyleSheet.create({
-  dropdownButton: {
-    borderWidth: 1,
-    borderColor: 'black', // 테두리 색상 설정
-    padding: 10,
-    borderRadius: 5,
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
-  dropdownButtonText: {
-    fontSize: 16,
+  menuContainer: {
+    marginBottom: 16,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  menuButton: {
+    backgroundColor: '#ffffff',
+  },
+  menuInput: {
+    paddingHorizontal: 12,
+    height: 56,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: 'black',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 10,
-    marginBottom: 10,
-    width: '80%',
+    marginBottom: 16,
+    backgroundColor: '#ffffff',
   },
-  textArea: {
-    borderWidth: 1,
-    borderColor: 'black',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 10,
-    width: '80%',
-    height: 100, // 높이 조절 가능
+  imageButton: {
+    backgroundColor: '#4caf50',
+    marginBottom: 16,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  imagesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  imageContainer: {
+    position: 'relative',
+  },
+  image: {
+    width: 100,
+    height: 100,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
   },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
+  closeButtonText: {
+    color: '#ff0000',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+  },
+  submitButton: {
+    backgroundColor: '#1976d2',
   },
 });
-
-export default Inquiry;
