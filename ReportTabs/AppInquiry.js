@@ -8,14 +8,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 const CATEGORIES = [
     { value: 'bug', label: '앱 버그 보고' },
     { value: 'improve', label: '서비스 개선사항 건의' },
-  ];
-  
-  const getCategoryLabel = (value) => {
+];
+
+const getCategoryLabel = (value) => {
     const category = CATEGORIES.find(cat => cat.value === value);
     return category ? category.label : '';
-  };
+};
 
-  // 분류(카테고리)
+// 분류(카테고리)
 
 export default function App() {
     const [category, setCategory] = useState('');
@@ -97,92 +97,102 @@ export default function App() {
 
     return (
         <Provider>
-      <SafeAreaView style={styles.safeArea}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.container}>
-              <TouchableOpacity onPress={showDialog} style={styles.categoryButton}>
-                <View style={styles.categoryInput}>
-                  <Animated.Text style={labelStyle}>
-                    {"분류"} {/* 여기에서 value 값이 표시됩니다. */}
-                  </Animated.Text>
-                  {category && 
-                    <Text style={{ fontSize: 16, color: '#000', position: 'absolute', top: 22, left: 10 }}>
-                      {getCategoryLabel(category)}
-                    </Text>
-                  }
-                </View>
-              </TouchableOpacity>
-    
-              <Portal>
-                <Dialog visible={visible} onDismiss={hideDialog}>
-                  <Dialog.Title>분류 선택</Dialog.Title>
-                  <Dialog.Content>
-                    <RadioButton.Group onValueChange={setCategory} value={category}>
-                      {CATEGORIES.map(cat => (
-                        <RadioButton.Item key={cat.value} label={cat.label} value={cat.value} />
-                      ))}
-                    </RadioButton.Group>
-                  </Dialog.Content>
-                  <Dialog.Actions>
-                    <Button onPress={hideDialog}>완료</Button>
-                  </Dialog.Actions>
-                </Dialog>
-              </Portal>
-
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        label="내용"
-                        mode="outlined"
-                        multiline
-                        numberOfLines={10}
-                        value={content}
-                        onChangeText={setContent}
-                        theme={{ colors: { primary: '#6200ea' } }}
-                    />
-
-                    <TextInput
-                        style={styles.input}
-                        label="이메일"
-                        mode="outlined"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        theme={{ colors: { primary: '#6200ea' } }}
-                    />
-
-                    <Button icon="camera" mode="contained" onPress={pickImage} style={styles.button}>
-                        이미지 선택
-                    </Button>
-
-                    <Portal>
-                        <Dialog visible={errorDialogVisible} onDismiss={hideErrorDialog}>
-                            <Dialog.Title>오류</Dialog.Title>
-                            <Dialog.Content>
-                                <Paragraph>최대 3장까지만 선택할 수 있습니다.</Paragraph>
-                            </Dialog.Content>
-                            <Dialog.Actions>
-                                <Button onPress={hideErrorDialog}>확인</Button>
-                            </Dialog.Actions>
-                        </Dialog>
-                    </Portal>
-
-                    <View style={styles.imagesContainer}>
-                        {images.map((image, index) => (
-                            <View key={index} style={styles.imageContainer}>
-                                <Image source={{ uri: image }} style={styles.image} />
-                                <TouchableOpacity onPress={() => removeImage(image)}>
-                                    <MaterialIcons name="cancel" size={24} color="red" style={styles.icon} />
-                                </TouchableOpacity>
+            <SafeAreaView style={styles.safeArea}>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={styles.container}>
+                        <TouchableOpacity onPress={showDialog} style={styles.categoryButton}>
+                            <View style={styles.categoryInput}>
+                                <Animated.Text style={labelStyle}>
+                                    {"분류"} {/* 여기에서 value 값이 표시됩니다. */}
+                                </Animated.Text>
+                                {category &&
+                                    <Text style={{ fontSize: 16, color: '#000', position: 'absolute', top: 22, left: 10 }}>
+                                        {getCategoryLabel(category)}
+                                    </Text>
+                                }
                             </View>
-                        ))}
-                    </View>
+                        </TouchableOpacity>
 
-                    <View style={styles.footer}>
-                        <Button mode="contained" onPress={submitForm} style={styles.submitButton}>
-                            제출
+                        <Portal>
+                            <Dialog visible={visible} onDismiss={hideDialog}>
+                                <Dialog.Title>분류 선택</Dialog.Title>
+                                <Dialog.Content>
+                                    <RadioButton.Group
+                                        onValueChange={value => {
+                                            setCategory(value);
+                                            hideDialog();
+                                        }}
+                                        value={category}
+                                    >
+                                        {CATEGORIES.map(cat => (
+                                            <RadioButton.Item
+                                                key={cat.value}
+                                                label={cat.label}
+                                                value={cat.value}
+                                                position="leading"
+                                                labelStyle={{ textAlign: 'left', marginLeft: 10 }}
+                                            />
+                                        ))}
+                                    </RadioButton.Group>
+                                </Dialog.Content>
+                            </Dialog>
+                        </Portal>
+
+
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            label="내용"
+                            mode="outlined"
+                            multiline
+                            numberOfLines={10}
+                            value={content}
+                            onChangeText={setContent}
+                            theme={{ colors: { primary: '#6200ea' } }}
+                        />
+
+                        <TextInput
+                            style={styles.input}
+                            label="이메일"
+                            mode="outlined"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            theme={{ colors: { primary: '#6200ea' } }}
+                        />
+
+                        <Button icon="camera" mode="contained" onPress={pickImage} style={styles.button}>
+                            이미지 선택
                         </Button>
+
+                        <Portal>
+                            <Dialog visible={errorDialogVisible} onDismiss={hideErrorDialog}>
+                                <Dialog.Title>오류</Dialog.Title>
+                                <Dialog.Content>
+                                    <Paragraph>최대 3장까지만 선택할 수 있습니다.</Paragraph>
+                                </Dialog.Content>
+                                <Dialog.Actions>
+                                    <Button onPress={hideErrorDialog}>확인</Button>
+                                </Dialog.Actions>
+                            </Dialog>
+                        </Portal>
+
+                        <View style={styles.imagesContainer}>
+                            {images.map((image, index) => (
+                                <View key={index} style={styles.imageContainer}>
+                                    <Image source={{ uri: image }} style={styles.image} />
+                                    <TouchableOpacity onPress={() => removeImage(image)}>
+                                        <MaterialIcons name="cancel" size={24} color="red" style={styles.icon} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+
+                        <View style={styles.footer}>
+                            <Button mode="contained" onPress={submitForm} style={styles.submitButton}>
+                                제출
+                            </Button>
+                        </View>
                     </View>
-                </View>
                 </TouchableWithoutFeedback>
             </SafeAreaView>
         </Provider>

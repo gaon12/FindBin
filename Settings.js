@@ -7,6 +7,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Icons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { Linking } from 'react-native';
+import AdminLogin from './Admin/AdminLogin.js'
 
 function Settings() {
     const [darkMode, setDarkMode] = useState(false);
@@ -15,6 +16,7 @@ function Settings() {
     const [sendAnonymousData, setSendAnonymousData] = useState(false);
     const [clickCounter, setClickCounter] = useState(0);
     const [RandomComponent, setRandomComponent] = useState(null);
+    const [ShowAdminLogin, setShowAdminLogin] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
 
     const fileArray = [require("./WITP/WhatIsThisPage1.js").default, require("./WITP/WhatIsThisPage2.js").default];
@@ -25,7 +27,7 @@ function Settings() {
             setRandomComponent(() => fileArray[randomFileIndex]);
             setIsModalVisible(true);
             setClickCounter(0);
-        } else if (clickCounter > 0) {
+        } else if (clickCounter > 0 && clickCounter < 4) {
             showToastMessage(`${4 - clickCounter}번 더 눌러 보세요!`, null);
         }
     }, [clickCounter]);
@@ -68,6 +70,11 @@ function Settings() {
         // 웹뷰를 열려면 해당 컴포넌트를 렌더링합니다.
         Linking.openURL(noticeURL)
             .catch((err) => console.error('Error opening URL: ', err));
+    };
+
+    const loadAdminLogin = () => {
+        setRandomComponent(() => AdminLogin);
+        setIsModalVisible(true);
     };
 
     useEffect(() => {
@@ -184,6 +191,32 @@ function Settings() {
                     </View>
                     <Switch value={useGPS} onValueChange={toggleGPS} />
                 </View>
+
+                <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
+
+                <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+                    관리자
+                </Text>
+
+                <TouchableOpacity onPress={loadAdminLogin}>
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingItem}>
+                            <Icons
+                                name="lock-closed"
+                                size={20}
+                                color={darkMode ? "#fff" : "#000"}
+                            />
+                            <Text
+                                style={[
+                                    styles.settingText,
+                                    { color: darkMode ? "#fff" : "#000" },
+                                ]}
+                            >
+                                관리자 메뉴
+                            </Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
 
                 <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
 

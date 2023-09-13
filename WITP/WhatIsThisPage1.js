@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { ProgressBar, Button, Text, Card } from "react-native-paper";
-import { WebView } from "react-native-webview";
 import axios from "axios";
 
 const randomCoordinates = () => {

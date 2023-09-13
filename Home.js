@@ -33,11 +33,46 @@ export default function Home() {
     const [bins, setBins] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedBin, setSelectedBin] = useState(null);
-    const [theme, setTheme] = useState("light"); // 다크 모드가 기본값
+    const [theme, setTheme] = useState("light"); // 라이트 모드가 기본값
     const [isOsm, setIsOsm] = useState(false); // 오픈스트리트 맵 사용 상태
 
+    // useEffect(() => {
+    //     const intervalId = setInterval(async () => {
+    //         try {
+    //             const newTheme = await AsyncStorage.getItem('lightdark');
+    //             if (newTheme !== null && newTheme !== theme) {
+    //                 setTheme(newTheme);
+    //             }
+
+    //             const newMapType = await AsyncStorage.getItem('useOpenStreetMap');
+    //             if (newMapType !== null) {
+    //                 setIsOsm(newMapType === 'true');
+    //             }
+
+    //             // 여기에 useGPS 설정 값을 확인하는 로직을 추가합니다.
+    //             const useGPS = await AsyncStorage.getItem('useGPS');
+    //             if (useGPS !== null) {
+    //                 if (useGPS === 'true') {
+    //                     getCurrentLocation();
+    //                 } else {
+    //                     Toast.show({
+    //                         text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
+    //                     });
+    //                 }
+    //             }
+    //         } catch (error) {
+    //             console.error(error);
+    //         }
+    //     }, 500);
+
+    //     // Cleanup function to clear the interval on component unmount
+    //     return () => {
+    //         clearInterval(intervalId);
+    //     };
+    // }, [theme]);
+
     useEffect(() => {
-        const intervalId = setInterval(async () => {
+        const intervalId = async () => {
             try {
                 const newTheme = await AsyncStorage.getItem('lightdark');
                 if (newTheme !== null && newTheme !== theme) {
@@ -48,10 +83,29 @@ export default function Home() {
                 if (newMapType !== null) {
                     setIsOsm(newMapType === 'true');
                 }
+
+                // 여기에 useGPS 설정 값을 확인하는 로직을 추가합니다.
+                const useGPS = await AsyncStorage.getItem('useGPS');
+                if (status !== "granted") {
+                    Toast.show({
+                        text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
+                    });
+                } else {
+                    if (useGPS !== null) {
+                        if (useGPS === 'true') {
+                            getCurrentLocation();
+                        } else {
+                            Toast.show({
+                                text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
+                            });
+                        }
+                    }
+                }
+                
             } catch (error) {
                 console.error(error);
             }
-        }, 500); // 여기서 500은 각 체크 사이의 밀리초 단위 시간 간격입니다. 필요에 따라 조정할 수 있습니다.
+        };
 
         // Cleanup function to clear the interval on component unmount
         return () => {
@@ -60,12 +114,18 @@ export default function Home() {
     }, [theme]);
 
     const getCurrentLocation = async () => {
+        const useGPS = await AsyncStorage.getItem('useGPS');
+        if (useGPS === 'false') {
+            Toast.show({
+                text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
+            });
+        }
+
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
             Toast.show({
                 text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
             });
-            return;
         }
 
         Toast.show({ text1: "현재 위치를 찾는 중입니다." });
@@ -75,15 +135,26 @@ export default function Home() {
         });
 
         const initialRegion = {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
+            latitude: 37.5665,
+            longitude: 126.978,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
         };
 
-        setLocation(initialRegion);
-        setCurrentRegion(initialRegion);
-        Toast.show({ text1: "현재 위치 발견!" });
+        if (useGPS === 'true') {
+            const initialRegion = {
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            };
+
+            setLocation(initialRegion);
+            setCurrentRegion(initialRegion);
+            Toast.show({ text1: "현재 위치 발견!" });
+        } else {
+            Toast.show({ text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요." });
+        }
 
         if (mapRef) {
             mapRef.animateToRegion(initialRegion, 1000);
@@ -177,10 +248,10 @@ export default function Home() {
         let distance = Math.round(latitudeDelta * LINEAR_FACTOR);
 
         // 거리가 5000m를 초과하지 않도록 함
-        distance = Math.min(5000, distance);
+        distance = Math.min(2000, distance);
 
         // 거리가 최소 500m 이상이 되도록 함
-        distance = Math.max(500, distance);
+        distance = Math.max(50, distance);
 
         return distance;
     };
@@ -417,29 +488,35 @@ export default function Home() {
                     style={styles.button}
                     onPress={async () => {
                         const { status } = await Location.requestForegroundPermissionsAsync();
-                        if (status !== 'granted') {
-                            Toast.show({
-                                text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
-                            });
-                            return;
-                        }
+                        const useGPS = await AsyncStorage.getItem('useGPS');
+                            if (status !== "granted") {
+                                Toast.show({
+                                    text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
+                                });
+                            } else {
+                                if (useGPS === 'true') {
+                                    const { coords } = await Location.getCurrentPositionAsync({
+                                        accuracy: Location.Accuracy.Lowest
+                                    });
 
-                        const { coords } = await Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.Lowest
-                        });
-
-                        const newLocation = {
-                            latitude: coords.latitude,
-                            longitude: coords.longitude,
-                            latitudeDelta: currentRegion.latitudeDelta,
-                            longitudeDelta: currentRegion.longitudeDelta,
-                        };
-
-                        // 현재 위치 정보를 설정합니다.
-                        setLocation(newLocation);
-                        setCurrentRegion(newLocation);
-
-                        mapRef.animateToRegion(newLocation, 1000);
+                                    const newLocation = {
+                                        latitude: coords.latitude,
+                                        longitude: coords.longitude,
+                                        latitudeDelta: currentRegion.latitudeDelta,
+                                        longitudeDelta: currentRegion.longitudeDelta,
+                                    };
+    
+                                    // 현재 위치 정보를 설정합니다.
+                                    setLocation(newLocation);
+                                    setCurrentRegion(newLocation);
+    
+                                    mapRef.animateToRegion(newLocation, 1000);
+                                } else if (status === 'granted' && useGPS === 'false') {
+                                    Toast.show({
+                                        text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
+                                    });
+                                }
+                            }
                     }}
                 >
                     <Ionicons name="navigate" size={24} style={dynamicStyles.iconColor} />
