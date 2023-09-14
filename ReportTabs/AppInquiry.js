@@ -3,6 +3,15 @@ import { View, StyleSheet, Image, TouchableOpacity, SafeAreaView, Animated, Touc
 import { TextInput, Button, Portal, Dialog, RadioButton, Provider, Paragraph } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
+import axios from 'axios';
+/*
+    {
+        Category:
+        Contents:
+        Email:
+        file:
+    }
+*/
 
 // 분류(카테고리)
 const CATEGORIES = [
@@ -57,8 +66,38 @@ export default function App() {
         setImages(images.filter(image => image !== uri));
     };
 
-    const submitForm = () => {
+    const submitForm = async () => {
         // 여기에 제출 로직 추가
+        try {
+            // 보낼 JSON 데이터 생성
+            const formData = {
+                Category: category,
+                Contents: content,
+                Email: email,
+                file: images
+            };
+
+            const jsonString = JSON.stringify(formData);
+
+            // 서버 엔드포인트 URL 설정
+            const apiUrl = 'https://example.com/api/submit';
+
+            // Axios를 사용하여 POST 요청 보내기
+            const response = await axios.post(apiUrl, jsonString, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            // 서버 응답 데이터 확인
+            console.log('서버 응답 데이터:', response.data);
+
+            // 원하는 서버 응답 처리 로직을 추가하세요.
+
+        } catch (error) {
+            console.error('서버 요청 오류:', error);
+            // 오류 처리 로직을 추가하세요.
+        }
     };
 
     const [labelAnim] = useState(new Animated.Value(1)); // 애니메이션 값 상태를 추가합니다.
