@@ -6,20 +6,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Collapsible from 'react-native-collapsible';
 import MapView, { Marker } from 'react-native-maps';
 import Toast from "react-native-toast-message";
-
-// 분류명/시도/시군구/위도/경도/내용/이메일/이미지(선택3개까지)
-/*
-{
-    Affiliation1:
-    Affiliation2:
-    Latitude:
-    Longitude:
-    Category:
-    Contests:
-    Email:
-    file:
-}
-*/
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from 'axios';
+import { Dialog as IOSDialog, CheckBox } from '@rneui/themed';
 
 // 분류(카테고리)
 const CATEGORIES = [
@@ -35,8 +26,14 @@ const getCategoryLabel = (value) => {
 
 // 분류(카테고리)
 
-export default function App() {
-    const [category, setCategory] = useState('');
+export default function Inquiry() {
+    const seoulCityHall = {
+        latitude: 37.5665,
+        longitude: 126.978,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+    };
+    const [location, setLocation] = useState(seoulCityHall);
     const [content, setContent] = useState('');
     const [email, setEmail] = useState('');
     const [images, setImages] = useState([]);
@@ -47,8 +44,8 @@ export default function App() {
     const [markers, setMarkers] = useState([]);
     const [canAddMarker, setCanAddMarker] = useState(true);
     const [theme, setTheme] = useState("light"); // 라이트 모드가 기본값
-
-    const mapRef = useRef(null);
+    const [currentRegion, setCurrentRegion] = useState(seoulCityHall);
+    const [mapRef, setMapRef] = useState(null);
     const hideDialog = () => setVisible(false);
 
     const [errorDialogVisible, setErrorDialogVisible] = useState(false);
@@ -82,11 +79,64 @@ export default function App() {
         setImages(images.filter(image => image !== uri));
     };
 
-    const submitForm = () => {
-        // 여기에 제출 로직 추가
+    const submitForm = async () => {
+        // 여기에 제출 로직 추가${data.address.city || ''} ${data.address.borough || ''}
+        if (category == "add") {
+            var RealCategory = "공공 쓰레기통 목록 추가";
+        }
+        else if (category == "nothing") {
+            var RealCategory = "공공 쓰레기통 미존재";
+        }
+        else if (category == "fullfix") {
+            var RealCategory = "쓰레기통 비워주세요 / 관리가 필요해요";
+        }
+        try {
+            // 보낼 JSON 데이터 생성
+            const formData = {
+                Affiliation1: '서울',
+                Affiliation2: '어딘가',
+                Latitude: markers[0].latitude.toFixed(6),
+                Longitude: markers[0].longitude.toFixed(6),
+                Category: RealCategory,
+                Contents: content,
+                Email: email,
+                file1: '',
+                file2: '',
+                file3: ''
+            };
+
+            const jsonString = JSON.stringify(formData);
+
+            // 서버 엔드포인트 URL 설정
+            const apiUrl = 'https://findbin.uiharu.dev/app/api/inquiry/api.php';
+
+            // Axios를 사용하여 POST 요청 보내기
+            const response = await axios.post(apiUrl, jsonString, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            // 서버 응답 데이터 확인
+            console.log('서버 응답 데이터:', response.data);
+
+            // 원하는 서버 응답 처리 로직을 추가하세요.
+
+        } catch (error) {
+            console.error('서버 요청 오류:', error);
+            // 오류 처리 로직을 추가하세요.
+        }
     };
 
-    const [labelAnim] = useState(new Animated.Value(1)); // 애니메이션 값 상태를 추가합니다.
+    const [visible5, setVisible5] = useState(false);
+    const [checked, setChecked] = useState(null);
+    const [category, setCategory] = useState(null);
+
+    const toggleDialog5 = () => {
+        setVisible5(!visible5);
+    };
+
+    const [labelAnim] = useState(new Animated.Value(1));
 
     useEffect(() => {
         if (category) {
@@ -138,13 +188,72 @@ export default function App() {
             }
 
             const data = await response.json();
-            const Address = `${data.address.city || ''} ${data.address.borough || ''} ${data.address.suburb || ''} ${data.address.road || ''}`;
-
-
+            var Address = `${data.address.province || ''} ${data.address.city || ''} ${data.address.county || ''} ${data.address.city_district || ''} ${data.address.village || ''}${data.address.borough || ''} ${data.address.suburb || ''} ${data.address.road || ''} ${data.address.amenity || ''}`.replace(/ +/g, ' ').trim();
+            if (data.address.city == null) {
+                var Address = "\n[E404] 현재 좌표 정보 부족.\n다른 좌표를 입력하세요.";
+            }
             return Address;
         } catch (error) {
             console.error('API 요청 중 오류 발생:', error);
             return null; // 오류 시 null을 반환하거나 다른 처리를 수행할 수 있습니다.
+        }
+    };
+
+    useEffect(() => {
+        getCurrentLocation();
+    }, [mapRef]); // mapRef를 dependency로 추가
+
+    // CurrentRegion을 호출하여 최신의 현재 위치를 얻습니다.
+    const CurrentRegion = () => {
+        getCurrentLocation();
+        return currentRegion;
+    };
+
+    const getCurrentLocation = async () => {
+        const useGPS = await AsyncStorage.getItem('useGPS');
+        if (useGPS === 'false') {
+            Toast.show({
+                text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
+            });
+        }
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+            Toast.show({
+                text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
+            });
+        }
+
+        Toast.show({ text1: "현재 위치를 찾는 중입니다." });
+
+        const { coords } = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Lowest,
+        });
+
+        const initialRegion = {
+            latitude: 37.5665,
+            longitude: 126.978,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+        };
+
+        if (useGPS === 'true') {
+            const initialRegion = {
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            };
+
+            setLocation(initialRegion);
+            setCurrentRegion(initialRegion);
+            Toast.show({ text1: "현재 위치 발견!" });
+        } else {
+            Toast.show({ text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요." });
+        }
+
+        if (mapRef) {
+            mapRef.animateToRegion(initialRegion, 1000);
         }
     };
 
@@ -180,6 +289,9 @@ export default function App() {
             backgroundColor: theme === "dark" ? "#333333" : "#ffffff",
             color: theme === "dark" ? "#ffffff" : "#000000",
         },
+        iconColor: {
+            color: theme === "dark" ? "#ffffff" : "#000000",
+        },
     };
 
     return (
@@ -188,7 +300,7 @@ export default function App() {
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <ScrollView>
                         <View style={styles.container}>
-                            <TouchableOpacity onPress={showDialog} style={styles.categoryButton}>
+                            <TouchableOpacity onPress={() => Platform.OS === 'android' ? showDialog() : toggleDialog5()} style={styles.categoryButton}>
                                 <View style={styles.categoryInput}>
                                     <Animated.Text style={labelStyle}>
                                         {"분류"} {/* 여기에서 value 값이 표시됩니다. */}
@@ -201,30 +313,54 @@ export default function App() {
                                 </View>
                             </TouchableOpacity>
 
-                            <Portal>
-                                <Dialog visible={visible} onDismiss={hideDialog}>
-                                    <Dialog.Title>분류 선택</Dialog.Title>
-                                    <Dialog.Content>
-                                        <RadioButton.Group
-                                            onValueChange={value => {
-                                                setCategory(value);
-                                                hideDialog();
-                                            }}
-                                            value={category}
-                                        >
-                                            {CATEGORIES.map(cat => (
-                                                <RadioButton.Item
-                                                    key={cat.value}
-                                                    label={cat.label}
-                                                    value={cat.value}
-                                                    position="leading"
-                                                    labelStyle={{ textAlign: 'left', marginLeft: 10 }}
-                                                />
-                                            ))}
-                                        </RadioButton.Group>
-                                    </Dialog.Content>
-                                </Dialog>
-                            </Portal>
+                            {Platform.OS === 'android' ? ( // 안드로이드 플랫폼에서만 실행
+                                <Portal>
+                                    <Dialog visible={visible} onDismiss={hideDialog}>
+                                        <Dialog.Title>분류 선택</Dialog.Title>
+                                        <Dialog.Content>
+                                            <RadioButton.Group
+                                                onValueChange={value => {
+                                                    setCategory(value);
+                                                    hideDialog();
+                                                }}
+                                                value={category}
+                                            >
+                                                {CATEGORIES.map(cat => (
+                                                    <RadioButton.Item
+                                                        key={cat.value}
+                                                        label={cat.label}
+                                                        value={cat.value}
+                                                        position="leading"
+                                                        labelStyle={{ textAlign: 'left', marginLeft: 10 }}
+                                                    />
+                                                ))}
+                                            </RadioButton.Group>
+                                        </Dialog.Content>
+                                    </Dialog>
+                                </Portal>
+                            ) : ( // iOS 플랫폼에서 실행
+                                <Portal>
+                                    <IOSDialog isVisible={visible5} onBackdropPress={toggleDialog5}>
+                                        <IOSDialog.Title title="분류 선택" />
+                                        {CATEGORIES.map((cat, i) => (
+                                            <CheckBox
+                                                key={i}
+                                                title={cat.label}
+                                                containerStyle={{ backgroundColor: 'white', borderWidth: 0 }}
+                                                checkedIcon="dot-circle-o"
+                                                uncheckedIcon="circle-o"
+                                                checked={checked === i}
+                                                onPress={() => {
+                                                    setChecked(i);
+                                                    setCategory(cat.value);
+                                                    console.log(`Option ${checked} was selected! Category: ${getCategoryLabel(category)}`);
+                                                    toggleDialog5();
+                                                }}
+                                            />
+                                        ))}
+                                    </IOSDialog>
+                                </Portal>
+                            )}
 
                             <Button
                                 onPress={() => setShowOptions(!showOptions)}
@@ -237,6 +373,7 @@ export default function App() {
                             <Collapsible collapsed={!showOptions}>
                                 <View style={{ height: 350, alignItems: 'center' }} onLayout={onMapReady}>
                                     <MapView
+                                        ref={(ref) => setMapRef(ref)}
                                         style={{ width: '100%', height: '100%' }}
                                         initialRegion={{
                                             latitude: 37.541,
@@ -254,10 +391,80 @@ export default function App() {
                                                 title={'신고위치'}
                                             />
                                         ))}
+
                                     </MapView>
                                 </View>
+                                <View
+                                    style={{ ...styles.buttonContainer, ...dynamicStyles.buttonContainer }}
+                                >
+                                    <TouchableOpacity
+                                        style={styles.mapButton}
+                                        onPress={() => {
+                                            mapRef.animateToRegion(
+                                                {
+                                                    ...currentRegion,
+                                                    latitudeDelta: currentRegion.latitudeDelta / 2,
+                                                    longitudeDelta: currentRegion.longitudeDelta / 2,
+                                                },
+                                                1000
+                                            );
+                                        }}
+                                    >
+                                        <Ionicons name="add" size={24} style={dynamicStyles.iconColor} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.mapButton}
+                                        onPress={() => {
+                                            mapRef.animateToRegion(
+                                                {
+                                                    ...currentRegion,
+                                                    latitudeDelta: currentRegion.latitudeDelta * 2,
+                                                    longitudeDelta: currentRegion.longitudeDelta * 2,
+                                                },
+                                                1000
+                                            );
+                                        }}
+                                    >
+                                        <Ionicons name="remove" size={24} style={dynamicStyles.iconColor} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.mapButton}
+                                        onPress={async () => {
+                                            const { status } = await Location.requestForegroundPermissionsAsync();
+                                            const useGPS = await AsyncStorage.getItem('useGPS');
+                                            if (status !== "granted") {
+                                                Toast.show({
+                                                    text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
+                                                });
+                                            } else {
+                                                if (useGPS === 'true') {
+                                                    const { coords } = await Location.getCurrentPositionAsync({
+                                                        accuracy: Location.Accuracy.Lowest
+                                                    });
 
+                                                    const newLocation = {
+                                                        latitude: coords.latitude,
+                                                        longitude: coords.longitude,
+                                                        latitudeDelta: currentRegion.latitudeDelta,
+                                                        longitudeDelta: currentRegion.longitudeDelta,
+                                                    };
 
+                                                    // 현재 위치 정보를 설정합니다.
+                                                    setLocation(newLocation);
+                                                    setCurrentRegion(newLocation);
+
+                                                    mapRef.animateToRegion(newLocation, 1000);
+                                                } else if (status === 'granted' && useGPS === 'false') {
+                                                    Toast.show({
+                                                        text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
+                                                    });
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <Ionicons name="navigate" size={24} style={dynamicStyles.iconColor} />
+                                    </TouchableOpacity>
+                                </View>
                             </Collapsible>
                             {koreanAddress && (
                                 <>
@@ -398,5 +605,18 @@ const styles = StyleSheet.create({
     },
     AndroidText: {
         fontSize: 15,
+    },
+    buttonContainer: {
+        position: "absolute",
+        top: '5%',
+        right: '2%',
+        backgroundColor: "white",
+        borderRadius: 8,
+        padding: 8,
+    },
+    mapbutton: {
+        marginVertical: 4,
+        padding: 10,
+        alignItems: "center",
     },
 });
