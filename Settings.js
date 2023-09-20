@@ -7,7 +7,8 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Icons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { Linking } from 'react-native';
-import AdminLogin from './Admin/AdminLogin.js'
+// import AdminLogin from './Admin/AdminLogin.js';
+import AdminLogin from './Admin/AppMain.js';
 
 function Settings() {
     const [darkMode, setDarkMode] = useState(false);
@@ -300,7 +301,7 @@ function Settings() {
                     <RandomComponent />
                     <TouchableOpacity
                         onPress={closeModal}
-                        style={{ position: "absolute", top: 40, right: 20 }}
+                        style={ Platform.OS === "ios" ? styles.IosClosebtn : styles.AndroidClosebtn }
                     >
                         <Text style={{ fontSize: 20, color: "#000" }}>닫기</Text>
                     </TouchableOpacity>
@@ -339,6 +340,16 @@ const styles = StyleSheet.create({
     settingText: {
         marginLeft: 8,
     },
+    IosClosebtn: {
+        position: "absolute",
+        top: 60,
+        right: 20
+    },
+    AndroidClosebtn: {
+        position: "absolute",
+        top: 40,
+        right: 20
+    }
 });
 
 export default Settings;

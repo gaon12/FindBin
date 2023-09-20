@@ -3,7 +3,14 @@ import { View, StyleSheet, Image, TouchableOpacity, SafeAreaView, Animated, Touc
 import { TextInput, Button, Portal, Dialog, RadioButton, Provider, Paragraph } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Dialog as IOSDialog, CheckBox } from '@rneui/themed';
+import Toast from "react-native-toast-message";
 import axios from 'axios';
+
+// 스타일 임포트
+import styles from './AppInquiryStyle';
+
+
 /*
     {
         Category:
@@ -26,12 +33,20 @@ const getCategoryLabel = (value) => {
 
 // 분류(카테고리)
 
-export default function App() {
+export default function AppInquiry() {
     const [category, setCategory] = useState('');
     const [content, setContent] = useState('');
     const [email, setEmail] = useState('');
     const [images, setImages] = useState([]);
     const [visible, setVisible] = useState(false);
+    const [theme, setTheme] = useState("light"); // 라이트 모드가 기본값
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [visible5, setVisible5] = useState(false);
+    const [checked, setChecked] = useState(null);
+
+    const toggleDialog5 = () => {
+        setVisible5(!visible5);
+    };
 
     const hideDialog = () => setVisible(false);
 
@@ -67,36 +82,88 @@ export default function App() {
     };
 
     const submitForm = async () => {
-        // 여기에 제출 로직 추가
+        setIsSubmitting(true);
+
+        // 여기에 제출 로직 추가${data.address.city || ''} ${data.address.borough || ''}
+        if (category == "bug") {
+            var RealCategory = "앱 버그 보고";
+        }
+        else if (category == "improve") {
+            var RealCategory = "서비스 개선사항 건의";
+        }
         try {
-            // 보낼 JSON 데이터 생성
+            // 이미지 업로드 결과를 저장할 배열
+            const fileUrls = [];
+
+            // 서버 엔드포인트 URL 설정
+            const imageapiUrl = 'https://findbin.uiharu.dev/app/api/AppInquiry/img.php';
+            for (let i = 0; i < images.length; i++) {
+                const filePath = images[i].replace('file://', '');
+                const fileData = {
+                    uri: images[i],
+                    type: 'image/jpeg',
+                    name: `${filePath.split('/').pop()}`,
+                };
+
+                const imageData = new FormData();
+                imageData.append('image', fileData);
+
+                try {
+                    const imageresponse = await axios.post(imageapiUrl, imageData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+
+                    const fileUrl = imageresponse.data.fileUrl;
+                    fileUrls.push(fileUrl);
+                } catch (error) {
+                    return null
+                }
+            }
+            console.log(fileUrls);
+
             const formData = {
-                Category: category,
+                Category: RealCategory,
                 Contents: content,
                 Email: email,
-                file: images
+                file1: fileUrls.length > 0 ? fileUrls[0] : '',
+                file2: fileUrls.length > 0 ? fileUrls[1] : '',
+                file3: fileUrls.length > 0 ? fileUrls[2] : ''
             };
 
             const jsonString = JSON.stringify(formData);
 
             // 서버 엔드포인트 URL 설정
-            const apiUrl = 'https://example.com/api/submit';
+            const apiUrl2 = 'https://findbin.uiharu.dev/app/api/AppInquiry/api.php';
 
             // Axios를 사용하여 POST 요청 보내기
-            const response = await axios.post(apiUrl, jsonString, {
+            const response = await axios.post(apiUrl2, jsonString, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
 
-            // 서버 응답 데이터 확인
-            console.log('서버 응답 데이터:', response.data);
+            console.log(fileUrls);
 
             // 원하는 서버 응답 처리 로직을 추가하세요.
-
+            setCategory(null);
+            setContent('');
+            setEmail('');
+            setImages([]);
+            // Toast 메시지 표시 (제출 성공 여부에 따라 다른 메시지 출력 가능)
+            Toast.show({
+                text1: "제출이 완료되었습니다.",
+            });
         } catch (error) {
-            console.error('서버 요청 오류:', error);
-            // 오류 처리 로직을 추가하세요.
+            console.log(error);
+            // Toast 메시지 표시 (제출 실패 메시지)
+            Toast.show({
+                text1: "제출에 실패하였습니다. 다시 시도해주세요.",
+            });
+        } finally {
+            // 작업이 완료되면 제출 상태를 다시 활성화
+            setIsSubmitting(false);
         }
     };
 
@@ -134,48 +201,81 @@ export default function App() {
         textAlignVertical: 'center',
     };
 
+    const dynamicStyles = {
+        toast: {
+            backgroundColor: theme === "dark" ? "#333333" : "#ffffff",
+            color: theme === "dark" ? "#ffffff" : "#000000",
+        },
+        iconColor: {
+            color: theme === "dark" ? "#ffffff" : "#000000",
+        },
+    };
+
     return (
         <Provider>
             <SafeAreaView style={styles.safeArea}>
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                     <View style={styles.container}>
-                        <TouchableOpacity onPress={showDialog} style={styles.categoryButton}>
-                            <View style={styles.categoryInput}>
-                                <Animated.Text style={labelStyle}>
-                                    {"분류"} {/* 여기에서 value 값이 표시됩니다. */}
-                                </Animated.Text>
-                                {category &&
-                                    <Text style={{ fontSize: 16, color: '#000', position: 'absolute', top: 22, left: 10 }}>
-                                        {getCategoryLabel(category)}
-                                    </Text>
-                                }
-                            </View>
-                        </TouchableOpacity>
+                    <TouchableOpacity onPress={() => Platform.OS === 'android' ? showDialog() : toggleDialog5()} style={styles.categoryButton}>
+                                <View style={styles.categoryInput}>
+                                    <Animated.Text style={labelStyle}>
+                                        {"분류"} {/* 여기에서 value 값이 표시됩니다. */}
+                                    </Animated.Text>
+                                    {category &&
+                                        <Text style={{ fontSize: 16, color: '#000', position: 'absolute', top: 22, left: 10 }}>
+                                            {getCategoryLabel(category)}
+                                        </Text>
+                                    }
+                                </View>
+                            </TouchableOpacity>
 
-                        <Portal>
-                            <Dialog visible={visible} onDismiss={hideDialog}>
-                                <Dialog.Title>분류 선택</Dialog.Title>
-                                <Dialog.Content>
-                                    <RadioButton.Group
-                                        onValueChange={value => {
-                                            setCategory(value);
-                                            hideDialog();
-                                        }}
-                                        value={category}
-                                    >
-                                        {CATEGORIES.map(cat => (
-                                            <RadioButton.Item
-                                                key={cat.value}
-                                                label={cat.label}
-                                                value={cat.value}
-                                                position="leading"
-                                                labelStyle={{ textAlign: 'left', marginLeft: 10 }}
+                            {Platform.OS === 'android' ? ( // 안드로이드 플랫폼에서만 실행
+                                <Portal>
+                                    <Dialog visible={visible} onDismiss={hideDialog}>
+                                        <Dialog.Title>분류 선택</Dialog.Title>
+                                        <Dialog.Content>
+                                            <RadioButton.Group
+                                                onValueChange={value => {
+                                                    setCategory(value);
+                                                    hideDialog();
+                                                }}
+                                                value={category}
+                                            >
+                                                {CATEGORIES.map(cat => (
+                                                    <RadioButton.Item
+                                                        key={cat.value}
+                                                        label={cat.label}
+                                                        value={cat.value}
+                                                        position="leading"
+                                                        labelStyle={{ textAlign: 'left', marginLeft: 10 }}
+                                                    />
+                                                ))}
+                                            </RadioButton.Group>
+                                        </Dialog.Content>
+                                    </Dialog>
+                                </Portal>
+                            ) : ( // iOS 플랫폼에서 실행
+                                <Portal>
+                                    <IOSDialog isVisible={visible5} onBackdropPress={toggleDialog5}>
+                                        <IOSDialog.Title title="분류 선택" />
+                                        {CATEGORIES.map((cat, i) => (
+                                            <CheckBox
+                                                key={i}
+                                                title={cat.label}
+                                                containerStyle={{ backgroundColor: 'white', borderWidth: 0 }}
+                                                checkedIcon="dot-circle-o"
+                                                uncheckedIcon="circle-o"
+                                                checked={checked === i}
+                                                onPress={() => {
+                                                    setChecked(i);
+                                                    setCategory(cat.value);
+                                                    toggleDialog5();
+                                                }}
                                             />
                                         ))}
-                                    </RadioButton.Group>
-                                </Dialog.Content>
-                            </Dialog>
-                        </Portal>
+                                    </IOSDialog>
+                                </Portal>
+                            )}
 
 
                         <TextInput
@@ -227,73 +327,20 @@ export default function App() {
                         </View>
 
                         <View style={styles.footer}>
-                            <Button mode="contained" onPress={submitForm} style={styles.submitButton}>
-                                제출
-                            </Button>
+                            <Button
+                                onPress={submitForm}
+                                disabled={isSubmitting}
+                                style={styles.submitButton}
+                                mode="contained" // isSubmitting이 true이면 버튼을 비활성화
+                            >제출</Button>
                         </View>
+                        <Toast
+                            style={dynamicStyles.toast}
+                            textStyle={{ color: dynamicStyles.toast.color }}
+                        />
                     </View>
                 </TouchableWithoutFeedback>
             </SafeAreaView>
         </Provider>
     );
 }
-
-const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-    },
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: '#f5f5f5',
-    },
-    categoryButton: {
-        marginBottom: 12,
-    },
-    categoryInput: {
-        backgroundColor: '#fff',
-        borderWidth: 1, // 경계선을 추가합니다.
-        borderColor: '#6200ea', // 경계선 색상을 설정합니다.
-        borderRadius: 4, // 경계선의 반경을 설정합니다.
-        paddingHorizontal: 8, // 좌우 패딩을 추가합니다.
-        paddingVertical: 4, // 상하 패딩을 추가합니다.
-        height: 50,
-    },
-    input: {
-        marginBottom: 12,
-        backgroundColor: '#fff',
-    },
-    textArea: {
-        height: 150,
-    },
-    button: {
-        marginBottom: 12,
-        backgroundColor: '#6200ea',
-    },
-    imagesContainer: {
-        flexDirection: 'row',
-        marginBottom: 12,
-    },
-    imageContainer: {
-        position: 'relative',
-        marginRight: 8,
-    },
-    image: {
-        width: 100,
-        height: 100,
-        borderRadius: 8,
-    },
-    icon: {
-        position: 'absolute',
-        top: -10,
-        right: -10,
-    },
-    footer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        marginBottom: 16,
-    },
-    submitButton: {
-        backgroundColor: '#6200ea',
-    },
-});

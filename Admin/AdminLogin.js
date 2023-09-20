@@ -1,24 +1,31 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, SafeAreaView, Image, Text, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Image, Text, ScrollView, Platform } from 'react-native';
 import { Input, Button } from 'react-native-elements';
-import RNPickerSelect from 'react-native-picker-select';
+let Picker;
+let RNPickerSelect;
+
+if (Platform.OS === 'ios') {
+  RNPickerSelect = require('react-native-picker-select').default;
+} else {
+  Picker = require('@react-native-picker/picker').Picker;
+}
+
 import provincesAndDistricts from './data/provincesAndDistricts.json';
-import SecureStorage from 'react-native-secure-storage';
-import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
 
 export default function App() {
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
   const [password, setPassword] = useState('');
-  const [userId, setUserId] = useState('');
-  const [logoUrl, setLogoUrl] = useState('https://findbin.uiharu.dev/app/src/img/logo/icon.png');
-  const navigation = useNavigation();
+  const [logoUrl, setLogoUrl] = useState(
+    'https://findbin.uiharu.dev/app/src/img/logo/icon.png'
+  );
 
   const provinces = Object.keys(provincesAndDistricts);
   const districts = useMemo(() => {
     if (province && provincesAndDistricts[province]) {
-      return provincesAndDistricts[province].districts.map((district) => district.name);
+      return provincesAndDistricts[province].districts.map(
+        (district) => district.name
+      );
     } else {
       return [];
     }
@@ -53,96 +60,83 @@ export default function App() {
   setLogoUrl(newLogoUrl);
 }, [province, district]);
 
-    const checkStoredData = async () => {
-      try {
-        const storedAffiliation1 = await SecureStorage.getItem('Affiliation1');
-        const storedAffiliation2 = await SecureStorage.getItem('Affiliation2');
-        const storedUserId = await SecureStorage.getItem('UserId');
-        const storedPersonName = await SecureStorage.getItem('PersonName');
-
-        if (storedAffiliation1 && storedAffiliation2 && storedUserId && storedPersonName) {
-          navigation.navigate('BottomNavigations');
-        }
-      } catch (error) {
-        console.error('Error fetching stored data', error);
-      }
-    };
-
-    checkStoredData();
-
-  const handleLogin = async () => {
-    try {
-      const response = await axios.post('https://test.com/user/login.php', {
-        Affiliation1: province,
-        Affiliation2: district,
-        UserId: userId,
-        password: password,
-      });
-
-      const result = response.data;
-
-      if (result.StatsCode === 200) {
-        await SecureStorage.setItem('Affiliation1', result.Affiliation1);
-        await SecureStorage.setItem('Affiliation2', result.Affiliation2);
-        await SecureStorage.setItem('UserId', result.UserId);
-        await SecureStorage.setItem('PersonName', result.PersonName);
-
-        navigation.navigate('BottomNavigations');
-      } else {
-        Alert.alert('오류', result.message);
-      }
-    } catch (error) {
-      Alert.alert('오류', '로그인 중 오류가 발생했습니다.');
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeAreaView}>
       <View style={styles.container}>
       <ScrollView>
         <Image
           source={{ uri: logoUrl }}
-          style={[styles.logo, { transition: 'all 0.5s' }]}
+          style={styles.logo}
           resizeMode="contain"
         />
         <Text style={styles.labelStyle}>시도 / 시군구 선택</Text>
-        <View style={styles.pickerContainer}>
-          <RNPickerSelect
-            onValueChange={(value) => {
-              setProvince(value);
-              setDistrict(''); // 시도가 변경되면 시군구를 초기화합니다.
-            }}
-            items={provinces.map((province) => ({
-              label: province,
-              value: province,
-            }))}
-            placeholder={{ label: '시도', value: null }}
-            style={pickerSelectStyles}
-            useNativeAndroidPickerStyle={false}
-          />
-        </View>
-        <View style={styles.pickerContainer}>
-          <RNPickerSelect
-            onValueChange={(value) => setDistrict(value)}
-            value={district}
-            items={districts.map((district) => ({
-              label: district, // 문자열을 사용합니다.
-              value: district, // 문자열을 사용합니다.
-            }))}
-            placeholder={{ label: '시군구', value: null }}
-            style={pickerSelectStyles}
-            useNativeAndroidPickerStyle={false}
-          />
-        </View>
-
+        {Platform.OS === 'ios' ? (
+          <>
+            <View style={styles.pickerContainer}>
+              <RNPickerSelect
+                onValueChange={(value) => {
+                  setProvince(value);
+                  setDistrict(''); // 시도가 변경되면 시군구를 초기화합니다.
+                }}
+                items={provinces.map((province) => ({
+                  label: province,
+                  value: province,
+                }))}
+                placeholder={{ label: '시도', value: null }}
+                style={pickerSelectStyles}
+                useNativeAndroidPickerStyle={false}
+              />
+            </View>
+            <View style={styles.pickerContainer}>
+              <RNPickerSelect
+                onValueChange={(value) => setDistrict(value)}
+                value={district}
+                items={districts.map((district) => ({
+                  label: district,
+                  value: district,
+                }))}
+                placeholder={{ label: '시군구', value: null }}
+                style={pickerSelectStyles}
+                useNativeAndroidPickerStyle={false}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={province}
+                onValueChange={(itemValue) => {
+                  setProvince(itemValue);
+                  setDistrict('');
+                }}
+              >
+                <Picker.Item label="시도" value="" />
+                {provinces.map((province, index) => (
+                  <Picker.Item key={index} label={province} value={province} />
+                ))}
+              </Picker>
+            </View>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={district}
+                onValueChange={(itemValue) => setDistrict(itemValue)}
+              >
+                <Picker.Item label="시군구" value="" />
+                {districts.map((district, index) => (
+                  <Picker.Item key={index} label={district} value={district} />
+                ))}
+              </Picker>
+            </View>
+          </>
+        )}
         <Input
-      label="아이디"
-      placeholder="아이디를 입력하세요"
-      value={userId}
-      onChangeText={(text) => setUserId(text)}
-      containerStyle={styles.inputContainer}
-      inputContainerStyle={styles.inputInnerContainer}
-    />
+          label="아이디"
+          placeholder="아이디를 입력하세요"
+          value={null}
+          containerStyle={styles.inputContainer}
+          inputContainerStyle={styles.inputInnerContainer}
+        />
 
         <Input
           label="비밀번호"
@@ -154,10 +148,10 @@ export default function App() {
           inputContainerStyle={styles.inputInnerContainer}
         />
         <Button
-      title="로그인"
-      onPress={handleLogin}
-      buttonStyle={styles.button}
-    />
+          title="로그인"
+          onPress={() => console.log('로그인 시도')}
+          buttonStyle={styles.button}
+        />
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -208,16 +202,16 @@ const styles = StyleSheet.create({
 });
 
 const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    color: 'black',
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    color: 'black',
-  },
-});
+    inputIOS: {
+      fontSize: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 10,
+      color: 'black',
+    },
+    inputAndroid: {
+      fontSize: 16,
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      color: 'black',
+    },
+  });

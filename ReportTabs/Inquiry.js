@@ -12,6 +12,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from 'axios';
 import { Dialog as IOSDialog, CheckBox } from '@rneui/themed';
 
+// 스타일 임포트
+import styles from './InquiryStyle';
+
 // 분류(카테고리)
 const CATEGORIES = [
     { value: 'add', label: '공공 쓰레기통 목록 추가' },
@@ -47,6 +50,9 @@ export default function Inquiry() {
     const [currentRegion, setCurrentRegion] = useState(seoulCityHall);
     const [mapRef, setMapRef] = useState(null);
     const hideDialog = () => setVisible(false);
+    const [Affiliation1, setAffiliation1] = useState('');
+    const [Affiliation2, setAffiliation2] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [errorDialogVisible, setErrorDialogVisible] = useState(false);
 
@@ -80,6 +86,8 @@ export default function Inquiry() {
     };
 
     const submitForm = async () => {
+        setIsSubmitting(true);
+        
         // 여기에 제출 로직 추가${data.address.city || ''} ${data.address.borough || ''}
         if (category == "add") {
             var RealCategory = "공공 쓰레기통 목록 추가";
@@ -91,40 +99,85 @@ export default function Inquiry() {
             var RealCategory = "쓰레기통 비워주세요 / 관리가 필요해요";
         }
         try {
-            // 보낼 JSON 데이터 생성
+            // 이미지 업로드 결과를 저장할 배열
+            const fileUrls = [];
+
+            // 서버 엔드포인트 URL 설정
+            const imageapiUrl = 'https://findbin.uiharu.dev/app/api/inquiry/img.php';
+            for (let i = 0; i < images.length; i++) {
+                const filePath = images[i].replace('file://', '');
+                const fileData = {
+                    uri: images[i],
+                    type: 'image/jpeg',
+                    name: `${filePath.split('/').pop()}`,
+                };
+
+                const imageData = new FormData();
+                imageData.append('image', fileData);
+
+                try {
+                    const imageresponse = await axios.post(imageapiUrl, imageData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+
+                    const fileUrl = imageresponse.data.fileUrl;
+                    fileUrls.push(fileUrl);
+                } catch (error) {
+                    return null
+                }
+            }
+
+
             const formData = {
-                Affiliation1: '서울',
-                Affiliation2: '어딘가',
+                Affiliation1: Affiliation1,
+                Affiliation2: Affiliation2,
                 Latitude: markers[0].latitude.toFixed(6),
                 Longitude: markers[0].longitude.toFixed(6),
                 Category: RealCategory,
                 Contents: content,
                 Email: email,
-                file1: '',
-                file2: '',
-                file3: ''
+                file1: fileUrls.length > 0 ? fileUrls[0] : '',
+                file2: fileUrls.length > 0 ? fileUrls[1] : '',
+                file3: fileUrls.length > 0 ? fileUrls[2] : ''
             };
 
             const jsonString = JSON.stringify(formData);
 
             // 서버 엔드포인트 URL 설정
-            const apiUrl = 'https://findbin.uiharu.dev/app/api/inquiry/api.php';
+            const apiUrl2 = 'https://findbin.uiharu.dev/app/api/inquiry/api.php';
 
             // Axios를 사용하여 POST 요청 보내기
-            const response = await axios.post(apiUrl, jsonString, {
+            const response = await axios.post(apiUrl2, jsonString, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
 
-            // 서버 응답 데이터 확인
-            console.log('서버 응답 데이터:', response.data);
 
             // 원하는 서버 응답 처리 로직을 추가하세요.
-
+            setCategory(null);
+            setContent('');
+            setEmail('');
+            setImages([]);
+            setKoreanAddress('');
+            setAffiliation1('');
+            setAffiliation2('');
+            setShowOptions(false);
+            // Toast 메시지 표시 (제출 성공 여부에 따라 다른 메시지 출력 가능)
+            Toast.show({
+                text1: "제출이 완료되었습니다.",
+            });
         } catch (error) {
-            console.error('서버 요청 오류:', error);
-            // 오류 처리 로직을 추가하세요.
+
+            // Toast 메시지 표시 (제출 실패 메시지)
+            Toast.show({
+                text1: "제출에 실패하였습니다. 다시 시도해주세요.",
+            });
+        } finally {
+            // 작업이 완료되면 제출 상태를 다시 활성화
+            setIsSubmitting(false);
         }
     };
 
@@ -191,10 +244,12 @@ export default function Inquiry() {
             var Address = `${data.address.province || ''} ${data.address.city || ''} ${data.address.county || ''} ${data.address.city_district || ''} ${data.address.village || ''}${data.address.borough || ''} ${data.address.suburb || ''} ${data.address.road || ''} ${data.address.amenity || ''}`.replace(/ +/g, ' ').trim();
             if (data.address.city == null) {
                 var Address = "\n[E404] 현재 좌표 정보 부족.\n다른 좌표를 입력하세요.";
+                return null;
             }
+            setAffiliation1(`${data.address.province || ''} ${data.address.city || ''}`.replace(/ +/g, ' ').trim());
+            setAffiliation2(`${data.address.county || ''} ${data.address.city_district || ''}${data.address.borough || ''}`.replace(/ +/g, ' ').trim());
             return Address;
         } catch (error) {
-            console.error('API 요청 중 오류 발생:', error);
             return null; // 오류 시 null을 반환하거나 다른 처리를 수행할 수 있습니다.
         }
     };
@@ -217,15 +272,6 @@ export default function Inquiry() {
             });
         }
 
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-            Toast.show({
-                text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
-            });
-        }
-
-        Toast.show({ text1: "현재 위치를 찾는 중입니다." });
-
         const { coords } = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Lowest,
         });
@@ -247,7 +293,6 @@ export default function Inquiry() {
 
             setLocation(initialRegion);
             setCurrentRegion(initialRegion);
-            Toast.show({ text1: "현재 위치 발견!" });
         } else {
             Toast.show({ text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요." });
         }
@@ -353,7 +398,6 @@ export default function Inquiry() {
                                                 onPress={() => {
                                                     setChecked(i);
                                                     setCategory(cat.value);
-                                                    console.log(`Option ${checked} was selected! Category: ${getCategoryLabel(category)}`);
                                                     toggleDialog5();
                                                 }}
                                             />
@@ -522,7 +566,7 @@ export default function Inquiry() {
                             </View>
 
                             <View style={styles.footer}>
-                                <Button mode="contained" onPress={submitForm} style={styles.submitButton}>
+                                <Button mode="contained" onPress={submitForm} style={styles.submitButton} disabled={isSubmitting}>
                                     제출
                                 </Button>
                             </View>
@@ -538,85 +582,3 @@ export default function Inquiry() {
         </Provider>
     );
 }
-
-const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-    },
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: '#f5f5f5',
-        height: 'auto',
-    },
-    categoryButton: {
-        marginBottom: 12,
-    },
-    categoryInput: {
-        backgroundColor: '#fff',
-        borderWidth: 1, // 경계선을 추가합니다.
-        borderColor: '#6200ea', // 경계선 색상을 설정합니다.
-        borderRadius: 4, // 경계선의 반경을 설정합니다.
-        paddingHorizontal: 8, // 좌우 패딩을 추가합니다.
-        paddingVertical: 4, // 상하 패딩을 추가합니다.
-        height: 50,
-    },
-    input: {
-        marginBottom: 12,
-        backgroundColor: '#fff',
-    },
-    textArea: {
-        height: 150,
-    },
-    button: {
-        marginBottom: 12,
-        backgroundColor: '#6200ea',
-    },
-    imagesContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
-    },
-    imageContainer: {
-        position: 'relative',
-        marginRight: 8,
-    },
-    image: {
-        width: 100,
-        height: 100,
-        borderRadius: 8,
-    },
-    icon: {
-        position: 'absolute',
-        top: -110,
-        right: -10,
-    },
-    footer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        marginBottom: 16,
-    },
-    submitButton: {
-        backgroundColor: '#6200ea',
-    },
-    IosText: {
-        fontSize: 17,
-    },
-    AndroidText: {
-        fontSize: 15,
-    },
-    buttonContainer: {
-        position: "absolute",
-        top: '5%',
-        right: '2%',
-        backgroundColor: "white",
-        borderRadius: 8,
-        padding: 8,
-    },
-    mapbutton: {
-        marginVertical: 4,
-        padding: 10,
-        alignItems: "center",
-    },
-});

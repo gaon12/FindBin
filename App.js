@@ -45,9 +45,9 @@ const App = () => {
         const setInitialSettings = async () => {
             try {
                 await AsyncStorage.multiSet([
-                    ['lightdark', 'dark'],
+                    ['lightdark', 'light'],
                     ['useOpenStreetMap', 'false'],
-                    ['useGPS', 'false'],
+                    ['useGPS', 'true'],
                     ['sendAnonymousData', 'false'],
                 ]);
             } catch (e) {

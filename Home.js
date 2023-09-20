@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     StyleSheet,
     View,
@@ -16,6 +16,9 @@ import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// 스타일 임포트
+import styles from './HomeStyle';
+
 // 구글 지도 다크모드 스타일
 const darkMapStyle = require("./dark.json");
 
@@ -29,7 +32,8 @@ export default function Home() {
 
     const [location, setLocation] = useState(seoulCityHall);
     const [currentRegion, setCurrentRegion] = useState(seoulCityHall);
-    const [mapRef, setMapRef] = useState(null);
+    const mapRef = useRef(null);
+
     const [bins, setBins] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedBin, setSelectedBin] = useState(null);
@@ -152,13 +156,15 @@ export default function Home() {
             setLocation(initialRegion);
             setCurrentRegion(initialRegion);
             Toast.show({ text1: "현재 위치 발견!" });
+            if (mapRef.current) {
+                mapRef.current.animateToRegion(initialRegion, 1000);
+              }
+              
         } else {
             Toast.show({ text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요." });
         }
 
-        if (mapRef) {
-            mapRef.animateToRegion(initialRegion, 1000);
-        }
+       
     };
 
     useEffect(() => {
@@ -341,7 +347,7 @@ export default function Home() {
     return (
         <View style={styles.container}>
             <MapView
-                ref={(ref) => setMapRef(ref)}
+                 ref={mapRef}
                 style={styles.map}
                 userInterfaceStyle={theme === "dark" ? "dark" : "light"}
                 initialRegion={location}
@@ -529,62 +535,3 @@ export default function Home() {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    modalOutside: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)", // 반투명 배경
-    },
-    map: {
-        flex: 1,
-    },
-    buttonContainer: {
-        position: "absolute",
-        top: 40,
-        right: 10,
-        backgroundColor: "white",
-        borderRadius: 8,
-        padding: 8,
-    },
-    button: {
-        marginVertical: 4,
-        padding: 10,
-        alignItems: "center",
-    },
-    customButton: {
-        flex: 1,
-        backgroundColor: "#007AFF",
-        padding: 10,
-        margin: 5,
-        borderRadius: 5,
-        alignItems: "center",
-    },
-    buttonText: {
-        color: "white",
-        fontSize: 12,
-    },
-    modalView: {
-        margin: 20,
-        backgroundColor: "white",
-        borderRadius: 20,
-        padding: 35,
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    modalText: {
-        marginBottom: 15,
-        textAlign: "center",
-    },
-});
