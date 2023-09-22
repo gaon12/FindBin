@@ -8,9 +8,11 @@ import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { RFValue } from 'react-native-responsive-fontsize';
+import CryptoJS from 'crypto-js';
 import Home from './Home';
 import Report from './Report';
 import Settings from './Settings';
+import AppMain from './Admin/AppMain';
 
 const Tab = createBottomTabNavigator();
 
@@ -25,6 +27,8 @@ const getIcon = (route, focused, color) => {
         iconName = focused ? 'file-document' : 'file-document-outline';
     } else if (route.name === '설정') {
         iconName = focused ? 'settings' : 'settings-outline';
+    } else if (route.name === '관리') {
+        iconName = focused ? 'person-circle' : 'person-circle-outline';
     }
 
     return (
@@ -40,6 +44,28 @@ const App = () => {
     const [splashImageUrl, setSplashImageUrl] = useState(null);
     const [theme, setTheme] = useState(DefaultTheme);
     const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+    const [showAdminTab, setShowAdminTab] = useState(false);
+
+    useEffect(() => {
+        const intervalId = setInterval(async () => {
+            try {
+                const adminValue = await AsyncStorage.getItem('IsAdmin');
+    
+                if (adminValue === "0" || adminValue === "1") {
+                    setShowAdminTab(true);
+                } else {
+                    setShowAdminTab(false);
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                setShowAdminTab(false);
+            }
+        }, 500); // Check every 500ms
+    
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, []);
 
     useEffect(() => {
         const setInitialSettings = async () => {
@@ -49,6 +75,7 @@ const App = () => {
                     ['useOpenStreetMap', 'false'],
                     ['useGPS', 'true'],
                     ['sendAnonymousData', 'false'],
+                    // ['IsAdmin', 'U2FsdGVkX19CnoYVsxXeXkJlmt/Ir0X+8KlB3a9Ym4M=']
                 ]);
             } catch (e) {
                 console.error('Error setting initial values:', e);
@@ -217,6 +244,21 @@ const App = () => {
                                 },
                             }}
                         />
+                        {showAdminTab && (  // 조건부 렌더링
+                <Tab.Screen
+                    name="관리"
+                    component={AppMain}
+                    options={{
+                        headerTitleAlign: 'left',
+                        headerTitleStyle: {
+                            fontSize: Platform.OS === 'ios' ? RFValue(20) : RFValue(20),
+                        },
+                        headerStyle: {
+                            backgroundColor: theme.dark ? '#333333' : '#F5F5F5',
+                        },
+                    }}
+                />
+            )}
                     </Tab.Navigator>
                 </KeyboardAwareScrollView>
             </NavigationContainer>
