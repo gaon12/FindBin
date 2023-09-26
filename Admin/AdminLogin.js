@@ -3,7 +3,6 @@ import { View, StyleSheet, SafeAreaView, Image, Text, ScrollView, Platform } fro
 import { Input, Button } from 'react-native-elements';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import 'react-native-get-random-values';
-import CryptoJS from 'crypto-js';
 import axios from "axios";
 let Picker;
 let RNPickerSelect;
@@ -11,9 +10,9 @@ let RNPickerSelect;
 const SECRET_KEY = 'your_secret_key_here';
 
 //암호화 함수
-const encrypt = (text) => {
-    return CryptoJS.AES.encrypt(text, SECRET_KEY, {iv: '1234567890'}).toString();
-}
+// const encrypt = (text) => {
+//     return CryptoJS.AES.encrypt(text, SECRET_KEY, {iv: '1234567890'}).toString();
+// }
 // const encrypt = (key, data) => {
 //     const cipher = CryptoJS.AES.encrypt(data, CryptoJS.enc.Utf8.parse(key), {
 //         iv: CryptoJS.enc.Utf8.parse("1234567890"),
@@ -25,13 +24,9 @@ const encrypt = (text) => {
 // 복호화 함수
 // const decrypt = (cipherText) => {
 //     try {
-//         console.log('333');
 //         const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY, { iv: '1234567890' });
-//         console.log('444');
 //         const originalText = bytes.toString(CryptoJS.enc.Utf8);
-//         console.log('555');
 //         console.log(originalText);
-//         console.log('666');
 //         return originalText;
 //     } catch (error) {
 //         console.error('복호화 오류:', error);
@@ -112,8 +107,6 @@ export default function App({ closeModal }) {
 
     const Login = async () => {
         try {
-            console.log('0:', JSON.stringify(encrypt('0')));
-            console.log('1:', JSON.stringify(encrypt('1')));
             const formData = {
                 Affiliation1: province,
                 Affiliation2: district,
@@ -130,17 +123,17 @@ export default function App({ closeModal }) {
                     'Content-Type': 'application/json',
                 },
             });
-
-            console.log("성공", JSON.stringify(Loginresponse.data.message, null, 2));
             
             try {
-                console.log("시작", Loginresponse.data.message.Affiliation1);
-                var Affiliation1 = JSON.stringify(encrypt(Loginresponse.data.message.Affiliation1.toString()));
-                var Affiliation2 = JSON.stringify(encrypt(Loginresponse.data.message.Affiliation2.toString()));
-                var AccountID = JSON.stringify(encrypt(Loginresponse.data.message.AccountID.toString()));
-                var UserName = JSON.stringify(encrypt(Loginresponse.data.message.UserName.toString()));
+                // var Affiliation1 = JSON.stringify(encrypt(Loginresponse.data.message.Affiliation1.toString()));
+                // var Affiliation2 = JSON.stringify(encrypt(Loginresponse.data.message.Affiliation2.toString()));
+                // var AccountID = JSON.stringify(encrypt(Loginresponse.data.message.AccountID.toString()));
+                // var UserName = JSON.stringify(encrypt(Loginresponse.data.message.UserName.toString()));
+                var Affiliation1 = Loginresponse.data.message.Affiliation1.toString();
+                var Affiliation2 = Loginresponse.data.message.Affiliation2.toString();
+                var AccountID = Loginresponse.data.message.AccountID.toString();
+                var UserName = Loginresponse.data.message.UserName.toString();
                 var IsAdmin = Loginresponse.data.message.IsAdmin.toString();
-                console.log("2번", IsAdmin);
                 await AsyncStorage.setItem('Affiliation1', Affiliation1);
                 await AsyncStorage.setItem('Affiliation2', Affiliation2);
                 await AsyncStorage.setItem('AccountID', AccountID);
@@ -156,16 +149,11 @@ export default function App({ closeModal }) {
             var AccountID = await AsyncStorage.getItem('AccountID');
             var UserName = await AsyncStorage.getItem('UserName');
             var IsAdmin = await AsyncStorage.getItem('IsAdmin');
-            console.log('3번',AsyncStorage.getItem('IsAdmin'));
-            console.log('4번',IsAdmin);
-
-
             
             if (Affiliation1 && AccountID && IsAdmin) {
                 // 로그인 성공
                 console.log('일반 로그인 성공');
                 var IsAdmins = await AsyncStorage.getItem('IsAdmin');
-                console.log('5번',IsAdmins);
                 closeModal();
             }
 

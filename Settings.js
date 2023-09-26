@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, View, StyleSheet, Platform, StatusBar, TouchableOpacity } from "react-native";
+import { Modal, View, StyleSheet, Platform, StatusBar, TouchableOpacity, Alert, ScrollView } from "react-native";
 import { Switch, Text, Title, Divider } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -8,19 +8,42 @@ import Icons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { Linking } from 'react-native';
 // import AdminLogin from './Admin/AdminLogin.js';
-import AdminLogin from './Admin/AppMain.js';
+import AdminLogin from './Admin/AdminLogin.js';
+import { useRecoilState } from "recoil";
+import { darkModeState } from "./dataState.js";
 
 function Settings() {
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(null);
     const [useOpenStreetMap, setUseOpenStreetMap] = useState(false);
     const [useGPS, setUseGPS] = useState(false);
     const [sendAnonymousData, setSendAnonymousData] = useState(false);
     const [clickCounter, setClickCounter] = useState(0);
     const [RandomComponent, setRandomComponent] = useState(null);
-    const [ShowAdminLogin, setShowAdminLogin] = useState(null);
+    const [showLogoutTab, setshowLogoutTab] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
-
+    const [stateMode, setStateMode] = useRecoilState(darkModeState)
     const fileArray = [require("./WITP/WhatIsThisPage1.js").default, require("./WITP/WhatIsThisPage2.js").default];
+
+    useEffect(() => {
+        const intervalId = setInterval(async () => {
+            try {
+                const adminValue = await AsyncStorage.getItem('IsAdmin');
+
+                if (adminValue === "0" || adminValue === "1") {
+                    setshowLogoutTab(true);
+                } else {
+                    setshowLogoutTab(false);
+                }
+            } catch (err) {
+                console.error("Error:", err);
+                setshowLogoutTab(false);
+            }
+        })
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, []);
 
     useEffect(() => {
         if (clickCounter === 4) {
@@ -78,17 +101,18 @@ function Settings() {
         setIsModalVisible(true);
     };
 
-    useEffect(() => {
+   useEffect(() => {
         const applyDarkMode = async () => {
-            const mode = await AsyncStorage.getItem("lightdark");
-            setDarkMode(mode === "dark");
+            // const mode = await AsyncStorage.getItem("lightdark");
+            // setDarkMode(mode === "dark");
+            setStateMode(prevState => !prevState)
         };
         applyDarkMode();
-    }, []);
+    }, [darkMode]);
 
     const toggleDarkMode = async () => {
-        await AsyncStorage.setItem("lightdark", !darkMode ? "dark" : "light");
-        setDarkMode(!darkMode);
+        // await AsyncStorage.setItem("lightdark", !darkMode ? "dark" : "light");
+        setDarkMode(prevState => !prevState);
         showToastMessage("다크 모드", !darkMode);
     };
 
@@ -116,14 +140,32 @@ function Settings() {
         showToastMessage("익명 정보 수집 동의", !sendAnonymousData);
     };
 
+    const logout = async () => {
+        try {
+          await AsyncStorage.multiRemove([
+            'Affiliation1',
+            'Affiliation2',
+            'AccountID',
+            'UserName',
+            'IsAdmin',
+          ]);
+          Alert.alert(
+            '로그아웃 완료!',
+            '',
+            [
+              { text: '닫기', onPress: () => {} }
+            ]
+          );
+        } catch (error) {
+          console.error('로그아웃 중 오류 발생:', error);
+        }
+      };
+
     return (
         <>
-            <StatusBar
-                backgroundColor={darkMode ? "#000" : "#fff"}
-                barStyle={darkMode ? "light-content" : "dark-content"}
-            />
+            <ScrollView>
             <SafeAreaView
-                style={{ flex: 1, backgroundColor: darkMode ? "#000" : "#fff" }}
+                style={{ flex: 1, backgroundColor: darkMode ? "#000" : "#fff", marginTop: -30 }}
             >
                 <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
                     테마 설정
@@ -218,7 +260,27 @@ function Settings() {
                         </View>
                     </View>
                 </TouchableOpacity>
-
+                {showLogoutTab && (  // 조건부 렌더링
+                <TouchableOpacity onPress={logout}>
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingItem}>
+                            <Icon
+                                name="logout"
+                                size={20}
+                                color={darkMode ? "#fff" : "#000"}
+                            />
+                            <Text
+                                style={[
+                                    styles.settingText,
+                                    { color: darkMode ? "#fff" : "#000" },
+                                ]}
+                            >
+                                로그아웃
+                            </Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+                )}
                 <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
 
                 <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
@@ -298,7 +360,7 @@ function Settings() {
                     visible={isModalVisible}
                     onRequestClose={closeModal}
                 >
-                    <RandomComponent />
+                    <AdminLogin closeModal={closeModal} />
                     <TouchableOpacity
                         onPress={closeModal}
                         style={ Platform.OS === "ios" ? styles.IosClosebtn : styles.AndroidClosebtn }
@@ -307,6 +369,7 @@ function Settings() {
                     </TouchableOpacity>
                 </Modal>
             )}
+            </ScrollView>
         </>
     );
 }

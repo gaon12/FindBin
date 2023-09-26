@@ -1,143 +1,146 @@
-import React, { useState } from 'react';
-import { View, ScrollView, Image, Alert, TouchableOpacity, Platform, DevSettings } from 'react-native';
-import { Button, Text, Card } from 'react-native-elements';
-import Collapsible from 'react-native-collapsible';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Modal,
+  Text,
+  SafeAreaView,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
+import { Button } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 export default function AppMain() {
-  const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [collapsedMap, setCollapsedMap] = useState({});
-  const [posts, setPosts] = useState([]);
+  const [data, setData] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
 
-  const categories = ['전체', '앱 버그 보고', '서비스 개선사항 건의'];
+  const fetchData = useCallback(async () => {
+    if (loading) return;
 
-   // useEffect(() => {
-  //   // 서버에서 게시물 데이터를 가져오는 함수를 호출하고 데이터를 설정합니다.
-  //   // 아래 코드는 Axios를 사용하여 서버에서 데이터를 가져오는 코드입니다.
-  //   AxiosPostsFromServer();
-  // }, []);
+    // 비동기 스토리지에서 정보 가져오기
+    const Affiliation1 = await AsyncStorage.getItem('Affiliation1');
+    const Affiliation2 = await AsyncStorage.getItem('Affiliation2');
+    const UserName = await AsyncStorage.getItem('UserName');
+    const AccountID = await AsyncStorage.getItem('AccountID');
 
-  const AxiosPostsFromServer = async () => {
+    setLoading(true);
+
     try {
-      // Axios를 사용하여 서버 API 요청을 보냅니다.
-      const response = await axios.post('');
+      const response = await axios.post(
+        'https://findbin.uiharu.dev/app/api/inquiry/inquiry.php',
+        {
+          Affiliation1,
+          Affiliation2,
+          UserName,
+          AccountID,
+          pageno: page,
+        }
+      );
 
-      setPosts(response.data.map((item) => ({
-        index: item.id,
-        title: item.Contents.length > 10 ? item.content.slice(0, 10) + '...' : item.content,
-        content: item.Contents,
-        category: item.Category,
-        image: item.Filepath,
-      })));
-
-    } catch (error) {
-      console.error('데이터를 가져오는 중 오류 발생:', error);
-    }
-  };
-
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category);
-  };
-
-  // 로그아웃 처리를 위한 함수 <-- 추가된 부분
-  const logout = async () => {
-    try {
-      const keys = ['Affiliation1', 'Affiliation2', 'AccountID', 'UserName', 'IsAdmin'];
-      const result = await AsyncStorage.multiGet(keys);
-  
-      const isLoggedIn = result.some(([key, value]) => value !== null);
-  
-      if (isLoggedIn) {
-        await AsyncStorage.multiRemove(keys);
-        Alert.alert(
-          '로그아웃 완료!',
-          '',
-          [
-            //{ text: '닫기', onPress: () => DevSettings.reload() } // 로그아웃시 앱 리로드
-            { text: '닫기' } // 로그아웃시 앱 리로드 없음
-          ]
-        );
-      } else {
-        Alert.alert(
-          '로그인 상태가 아닙니다.',
-          '',
-          [
-            { text: '닫기', onPress: () => {} }
-          ]
-        );
+      if (response.data.StatusCode === 200) {
+        // 이전 데이터와 새로운 데이터를 합칩니다.
+        const newData = response.data.inquiries;
+        setPage(page+1)
+        setData((prevData) => [...prevData, ...newData]);
+        setTotalPages(Math.ceil(response.data.totalValue/10));
       }
-  
     } catch (error) {
-      console.error('로그아웃 중 오류 발생:', error);
+      // 오류 처리
+      console.error("AppMain: ", error);
+    } finally {
+      setLoading(false);
     }
+  }, [loading]);
+
+  useEffect(() => {
+    fetchData();
+    setPage(1)
+  }, []);
+
+  const onEndReached = () => {
+    // 마지막 페이지에 도달하면 무시
+    console.log(page);
+    if (page > totalPages || loading) {
+      return;
+    }
+    fetchData();
   };
 
-  const filteredPosts = selectedCategory === '전체' ? posts : posts.filter(post => post.category === selectedCategory);
-
-  const toggleCollapsible = (index) => {
-    setCollapsedMap(prevCollapsedMap => ({
-      ...prevCollapsedMap,
-      [index]: !prevCollapsedMap[index],
-    }));
+  const handleRowPress = (item) => {
+    setSelectedItem(item);
+    setModalVisible(true);
   };
 
   return (
-    <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <ScrollView horizontal>
-          {categories.map((category) => (
-            <Button
-              key={category}
-              onPress={() => handleCategoryChange(category)}
-              title={category}
-              buttonStyle={{
-                backgroundColor: selectedCategory === category ? '#00BCD4' : 'lightgray',
-                padding: 8,
-                margin: 4,
-                marginTop: Platform.OS === 'ios' ? 50 : 35,
-                borderRadius: 8,
-              }}
-            />
-          ))}
-        </ScrollView>
-        <Button
-          title="로그아웃"
-          onPress={logout}
-          buttonStyle={{
-            backgroundColor: '#FF4500',
-            padding: 8,
-            margin: 4,
-            marginTop: Platform.OS === 'ios' ? 50 : 35,
-            borderRadius: 8,
-          }}
-        />
-      </View>
-      <ScrollView>
-        {filteredPosts.map((post) => (
-          <Card key={post.index}>
-            <Card.Title>{post.title}</Card.Title>
-            <TouchableOpacity
-              onPress={() => toggleCollapsible(post.index)}
-            >
-              <Text style={{ marginBottom: 10 }}>{post.title}</Text>
-            </TouchableOpacity>
-            <Collapsible collapsed={collapsedMap[post.index]}>
-              <Text style={{ marginBottom: 10 }}>{post.content}</Text>
-              {post.image && <Image source={{ uri: post.image }} style={{ width: 200, height: 200 }} />}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                {/* 답변 버튼 */}
-                <TouchableOpacity onPress={() => handleReply(post.index)}>
-                  <Text>답변</Text>
-                </TouchableOpacity>
-                {/* 삭제 버튼 */}
-                <TouchableOpacity onPress={() => handleDelete(post.index)}>
-                  <Text>삭제</Text>
-                </TouchableOpacity>
-              </View>
-            </Collapsible>
-          </Card>
-        ))}
-      </ScrollView>
-    </View>
+    <SafeAreaView style={styles.safeAreaContainer}>
+      <FlatList
+        data={data}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => handleRowPress(item)}>
+            <View style={styles.row}>
+              <Text style={styles.cell}>{item.Contents.substring(0, 10)}...</Text>
+              <Text style={styles.cell}>{item.WriteDate}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
+        onEndReached={onEndReached} // 스크롤의 마지막에 도달하면 호출됨
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={loading && <ActivityIndicator />}
+        initialScrollIndex={null}
+      />
+      <Modal visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>{selectedItem?.Category}</Text>
+          <Text>{selectedItem?.Contents}</Text>
+          <Button title="닫기" onPress={() => setModalVisible(false)} />
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
-};
+}
+
+const styles = StyleSheet.create({
+  safeAreaContainer: {
+    flex: 1,
+    marginTop: 24, // 상단바와 겹치지 않도록 marginTop 추가
+  },
+  row: {
+    flexDirection: 'row',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  cell: {
+    flex: 1,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalContainer: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+  },
+  customButton: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    marginHorizontal: 5,
+  },
+  customButtonText: {
+    color: '#333',
+  },
+});

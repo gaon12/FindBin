@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { View, Image, StyleSheet, Text, Platform, SafeAreaView, Keyboard } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { Image, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { RFValue } from 'react-native-responsive-fontsize';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { RFValue } from 'react-native-responsive-fontsize';
-import CryptoJS from 'crypto-js';
+import { RecoilRoot } from "recoil";
+import AdminMain from './Admin/AdminMain';
 import Home from './Home';
 import Report from './Report';
 import Settings from './Settings';
-import AppMain from './Admin/AppMain';
 
 const Tab = createBottomTabNavigator();
 
@@ -57,7 +57,7 @@ const App = () => {
                     setShowAdminTab(false);
                 }
             } catch (err) {
-                console.error("Error:", err);
+                console.error("App.js Error:", err);
                 setShowAdminTab(false);
             }
         }, 500); // Check every 500ms
@@ -71,14 +71,14 @@ const App = () => {
         const setInitialSettings = async () => {
             try {
                 await AsyncStorage.multiSet([
-                    ['lightdark', 'light'],
+                    ['lightdark', 'false'],
                     ['useOpenStreetMap', 'false'],
                     ['useGPS', 'true'],
                     ['sendAnonymousData', 'false'],
                     // ['IsAdmin', 'U2FsdGVkX19CnoYVsxXeXkJlmt/Ir0X+8KlB3a9Ym4M=']
                 ]);
             } catch (e) {
-                console.error('Error setting initial values:', e);
+                console.error('App.js Error setting initial values:', e);
             }
         };
 
@@ -125,7 +125,7 @@ const App = () => {
                 }
             })
             .catch((error) => {
-                console.error('Error fetching splash image:', error);
+                console.error('App.js Error fetching splash image:', error);
                 setTimeout(() => {
                     setSplashScreen(false);
                 }, 1000);
@@ -144,7 +144,7 @@ const App = () => {
                     setTheme(value === 'dark' ? DarkTheme : DefaultTheme);
                 }
             } catch (e) {
-                console.error('Error reading value:', e);
+                console.error('App.js Error reading value:', e);
             }
         };
 
@@ -159,7 +159,7 @@ const App = () => {
                     setTheme(value === 'dark' ? DarkTheme : DefaultTheme);
                 }
             } catch (err) {
-                console.error(err);
+                console.error("App.js Error", err);
             }
         }, 500);
 
@@ -177,9 +177,10 @@ const App = () => {
     }
 
     return (
-        <SafeAreaProvider style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <RecoilRoot>
+            <SafeAreaProvider style={{ flex: 1, backgroundColor: theme.colors.background }}>
             <NavigationContainer theme={theme}>
-                <KeyboardAwareScrollView style={{ flex: 1 }} contentContainerStyle={{ flex: 1 }} keyboardShouldPersistTaps='handled' resetScrollToCoords={{ x: 0, y: 0 }}>
+                
                     <Tab.Navigator
                         screenOptions={({ route }) => ({
                             tabBarIcon: ({ focused, color }) => {
@@ -247,7 +248,7 @@ const App = () => {
                         {showAdminTab && (  // 조건부 렌더링
                 <Tab.Screen
                     name="관리"
-                    component={AppMain}
+                    component={AdminMain}
                     options={{
                         headerTitleAlign: 'left',
                         headerTitleStyle: {
@@ -260,9 +261,10 @@ const App = () => {
                 />
             )}
                     </Tab.Navigator>
-                </KeyboardAwareScrollView>
             </NavigationContainer>
         </SafeAreaProvider>
+        </RecoilRoot>
+        
     );
 };
 
