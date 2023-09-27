@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, SafeAreaView, Animated, TouchableWithoutFeedback, Keyboard, Text, ScrollView } from 'react-native';
+import { View, Image, TouchableOpacity, SafeAreaView, Animated, TouchableWithoutFeedback, Keyboard, Text, ScrollView } from 'react-native';
 import { TextInput, Button, Portal, Dialog, RadioButton, Provider, Paragraph } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -149,12 +149,11 @@ export default function Inquiry() {
             const apiUrl2 = 'https://findbin.uiharu.dev/app/api/inquiry/api.php';
 
             // Axios를 사용하여 POST 요청 보내기
-            const response = await axios.post(apiUrl2, jsonString, {
+            await axios.post(apiUrl2, jsonString, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-
 
             // 원하는 서버 응답 처리 로직을 추가하세요.
             setCategory(null);

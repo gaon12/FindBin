@@ -1,51 +1,95 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
+import { Card, Text } from 'react-native-elements';
 import * as Location from 'expo-location';
 
 export default function App() {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [address, setAddress] = useState(null);
+  const [plusCode, setPlusCode] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const formatKoreanAddress = (data) => {
+    // 주소 형식을 "서울특별시 강남구 XXX로 XXX(XXX동, 건물명, 12345)"로 변환
+    const { address } = data;
+    const components = [
+      address.state,
+      address.province,
+      address.city_district || address.city,
+      address.road,
+      address.house_number,
+    ];
+    return components.filter(Boolean).join(' ');
+  };  
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        return;
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permission to access location was denied');
+          return;
+        }
+
+        let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        setLocation(location);
+
+        const lat = location.coords.latitude.toFixed(6);
+        const lon = location.coords.longitude.toFixed(6);
+
+        // Nominatim 리버스 지오코딩
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&accept-language=ko`);
+        const data = await response.json();
+        setAddress(formatKoreanAddress(data));
+
+        // 구글 플러스 코드 가져오기
+        const plusCodeResponse = await fetch(`https://plus.codes/api?address=${lat},${lon}`);
+        const plusCodeData = await plusCodeResponse.json();
+        setPlusCode(plusCodeData.plus_code.global_code);
+
+        setLoading(false);
+      } catch (error) {
+        setErrorMsg('Failed to fetch data. Please check your internet connection.');
+        setLoading(false);
       }
-
-      let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-      setLocation(location);
-
-      // Nominatim 리버스 지오코딩
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.coords.latitude}&lon=${location.coords.longitude}&zoom=18&addressdetails=1&accept-language=ko`);
-      const data = await response.json();
-      setAddress(data.display_name);
-
-      setLoading(false);
     })();
   }, []);
 
   return (
-    <View style={styles.container}>
-      {loading ? <Text>로딩 중입니다...</Text> : null}
-      {errorMsg ? <Text>Error: {errorMsg}</Text> : null}
-      {location ? (
-        <Text>
-          현재 좌표: {location.coords.latitude}, {location.coords.longitude}
-        </Text>
-      ) : null}
-      {address ? <Text>주소: {address}</Text> : null}
-    </View>
+    <SafeAreaView style={styles.container}>
+      <Card containerStyle={styles.card}>
+        {loading ? <ActivityIndicator size="large" color="#6200EA" style={styles.margin} /> : null}
+        {errorMsg ? <Text h4 style={[styles.error, styles.margin]}>Error: {errorMsg}</Text> : null}
+        {location ? (
+          <Text h4 style={styles.margin}>
+            현재 좌표: {location.coords.latitude.toFixed(6)}, {location.coords.longitude.toFixed(6)}
+          </Text>
+        ) : null}
+        {address ? <Text h4 style={styles.margin}>주소: {address}</Text> : null}
+        {plusCode ? <Text h4 style={styles.margin}>플러스 코드: {plusCode}</Text> : null}
+      </Card>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  card: {
+    borderRadius: 8,
+    padding: 20,
+    width: '90%',
+    elevation: 5,
+  },
+  margin: {
+    marginBottom: 15,
+  },
+  error: {
+    color: 'red',
   },
 });

@@ -51,7 +51,7 @@ if (Platform.OS === 'ios') {
 
 import provincesAndDistricts from './data/provincesAndDistricts.json';
 
-export default function App({ closeModal }) {
+export default function AdminLogin({ closeModal }) {
     const [province, setProvince] = useState('');
     const [district, setDistrict] = useState('');
     const [username, setUsername] = useState('');
@@ -71,10 +71,6 @@ export default function App({ closeModal }) {
             return [];
         }
     }, [province]);
-
-    useEffect(() => {
-        autoLogin();
-    }, []);
 
     useEffect(() => {
         let newLogoUrl = 'https://findbin.uiharu.dev/app/src/img/logo/icon.png?timestamp=${new Date().getTime()}'; // 기본 로고 URL
@@ -105,10 +101,24 @@ export default function App({ closeModal }) {
         setLogoUrl(newLogoUrl);
     }, [province, district]);
 
+    const shortenRegionNameSplit = (regionName) => {
+        const suffixes = ['특별', '광역시', '도', '시'];
+        
+        for (const suffix of suffixes) {
+          const parts = regionName.split(suffix);
+          if (parts.length > 1) {
+            return parts[0];
+          }
+        }
+        
+        return regionName;
+      }
+
+
     const Login = async () => {
         try {
             const formData = {
-                Affiliation1: province,
+                Affiliation1: shortenRegionNameSplit(province),
                 Affiliation2: district,
                 AccountID: username,
                 Passwords: password,
@@ -152,40 +162,14 @@ export default function App({ closeModal }) {
             
             if (Affiliation1 && AccountID && IsAdmin) {
                 // 로그인 성공
-                console.log('일반 로그인 성공');
                 var IsAdmins = await AsyncStorage.getItem('IsAdmin');
                 closeModal();
             }
 
         } catch (error) {
+            alert('로그인 실패');
             console.error('로그인 요청 실패:', error);
             // 요청 실패 시 다음 작업을 수행하세요.
-        }
-    };
-
-    const autoLogin = async () => {
-        try {
-            // SecureStorage에서 저장된 데이터 검색
-            var Affiliation1 = await AsyncStorage.getItem('Affiliation1');
-            var Affiliation2 = await AsyncStorage.getItem('Affiliation2');
-            var AccountID = await AsyncStorage.getItem('AccountID');
-            var UserName = await AsyncStorage.getItem('UserName');
-            var IsAdmin = await AsyncStorage.getItem('IsAdmin');
-            
-
-            // 저장된 데이터를 기반으로 로그인 상태 확인
-            if (AccountID && UserName && IsAdmin) {
-                // 로그인 성공
-                console.log('자동 로그인 성공');
-                
-            } else {
-                // 저장된 데이터가 부족하거나 로그인 정보가 없는 경우
-                console.log('자동 로그인 실패');
-                // 로그인 화면으로 이동하거나 다른 작업을 수행합니다.
-            }
-        } catch (error) {
-            console.error('자동 로그인 오류:', error);
-            // 오류 처리를 수행합니다.
         }
     };
 

@@ -7,22 +7,23 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Icons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { Linking } from 'react-native';
-// import AdminLogin from './Admin/AdminLogin.js';
 import AdminLogin from './Admin/AdminLogin.js';
 import { useRecoilState } from "recoil";
-import { darkModeState } from "./dataState.js";
+import { darkModeState,osmstate } from "./dataState.js";
 
 function Settings() {
-    const [darkMode, setDarkMode] = useState(null);
-    const [useOpenStreetMap, setUseOpenStreetMap] = useState(false);
+    // const [darkMode, setDarkMode] = useState(null);
+    const [useOpenStreetMap, setUseOpenStreetMap] = useRecoilState(osmstate);
     const [useGPS, setUseGPS] = useState(false);
     const [sendAnonymousData, setSendAnonymousData] = useState(false);
     const [clickCounter, setClickCounter] = useState(0);
     const [RandomComponent, setRandomComponent] = useState(null);
+    const [LoginComponent, setLoginComponent] = useState(null);
     const [showLogoutTab, setshowLogoutTab] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [stateMode, setStateMode] = useRecoilState(darkModeState)
-    const fileArray = [require("./WITP/WhatIsThisPage1.js").default, require("./WITP/WhatIsThisPage2.js").default];
+    
+    const fileArray = [require("./WITP/WhatIsThisPage1.js").default, require("./WITP/WhatIsThisPage2.js").default, require("./WITP/WhatIsThisPage3.js").default];
 
     useEffect(() => {
         const intervalId = setInterval(async () => {
@@ -97,32 +98,32 @@ function Settings() {
     };
 
     const loadAdminLogin = () => {
-        setRandomComponent(() => AdminLogin);
+        setLoginComponent(() => AdminLogin);
         setIsModalVisible(true);
     };
 
-   useEffect(() => {
-        const applyDarkMode = async () => {
-            // const mode = await AsyncStorage.getItem("lightdark");
-            // setDarkMode(mode === "dark");
-            setStateMode(prevState => !prevState)
-        };
-        applyDarkMode();
-    }, [darkMode]);
+//    useEffect(() => {
+//         const applyDarkMode = async () => {
+//             // const mode = await AsyncStorage.getItem("lightdark");
+//             // setDarkMode(mode === "dark");
+//             // setStateMode(prevState => !prevState)
+//         };
+//         applyDarkMode();
+//     }, [darkMode]);
 
-    const toggleDarkMode = async () => {
+    const toggleDarkMode = () => {
         // await AsyncStorage.setItem("lightdark", !darkMode ? "dark" : "light");
-        setDarkMode(prevState => !prevState);
-        showToastMessage("다크 모드", !darkMode);
+        setStateMode(prevState => !prevState);
+        showToastMessage("다크 모드", !stateMode);
     };
 
-    const toggleOpenStreetMap = async () => {
+    const toggleOpenStreetMap = () => {
         setUseOpenStreetMap((prevValue) => !prevValue);
-        await AsyncStorage.setItem(
-            "useOpenStreetMap",
-            JSON.stringify(!useOpenStreetMap)
-        );
-        showToastMessage("오픈스트리트맵 사용", !useOpenStreetMap);
+        // await AsyncStorage.setItem(
+        //     "useOpenStreetMap",
+        //     JSON.stringify(useOpenStreetMap)
+        // );
+        // showToastMessage("오픈스트리트맵 사용", !useOpenStreetMap);
     };
 
     const toggleGPS = async () => {
@@ -165,9 +166,9 @@ function Settings() {
         <>
             <ScrollView>
             <SafeAreaView
-                style={{ flex: 1, backgroundColor: darkMode ? "#000" : "#fff", marginTop: -30 }}
+                style={{ flex: 1, backgroundColor: stateMode ? "#000" : "#fff", marginTop: -30 }}
             >
-                <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+                <Text style={[styles.header, { color: stateMode ? "#fff" : "#000" }]}>
                     테마 설정
                 </Text>
                 <View style={styles.settingRow}>
@@ -175,34 +176,34 @@ function Settings() {
                         <Icon
                             name="theme-light-dark"
                             size={20}
-                            color={darkMode ? "#fff" : "#000"}
+                            color={stateMode ? "#fff" : "#000"}
                         />
                         <Text
                             style={[
                                 styles.settingText,
-                                { color: darkMode ? "#fff" : "#000" },
+                                { color: stateMode ? "#fff" : "#000" },
                             ]}
                         >
                             다크 모드
                         </Text>
                     </View>
-                    <Switch value={darkMode} onValueChange={toggleDarkMode} />
+                    <Switch value={stateMode} onValueChange={toggleDarkMode} />
                 </View>
-                <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
+                <Divider style={{ backgroundColor: stateMode ? "#fff" : "#000" }} />
 
                 {Platform.OS === "ios" && (
                     <>
-                        <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+                        <Text style={[styles.header, { color: stateMode ? "#fff" : "#000" }]}>
                             지도 설정
                         </Text>
 
                         <View style={styles.settingRow}>
                             <View style={styles.settingItem}>
-                                <Icon name="map" size={20} color={darkMode ? "#fff" : "#000"} />
+                                <Icon name="map" size={20} color={stateMode ? "#fff" : "#000"} />
                                 <Text
                                     style={[
                                         styles.settingText,
-                                        { color: darkMode ? "#fff" : "#000" },
+                                        { color: stateMode ? "#fff" : "#000" },
                                     ]}
                                 >
                                     오픈스트리트맵 사용
@@ -213,7 +214,7 @@ function Settings() {
                     </>
                 )}
 
-                <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+                <Text style={[styles.header, { color: stateMode ? "#fff" : "#000" }]}>
                     위치 정보 설정
                 </Text>
                 <View style={styles.settingRow}>
@@ -221,12 +222,12 @@ function Settings() {
                         <Icon
                             name="map-marker"
                             size={20}
-                            color={darkMode ? "#fff" : "#000"}
+                            color={stateMode ? "#fff" : "#000"}
                         />
                         <Text
                             style={[
                                 styles.settingText,
-                                { color: darkMode ? "#fff" : "#000" },
+                                { color: stateMode ? "#fff" : "#000" },
                             ]}
                         >
                             GPS 사용
@@ -235,31 +236,33 @@ function Settings() {
                     <Switch value={useGPS} onValueChange={toggleGPS} />
                 </View>
 
-                <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
+                <Divider style={{ backgroundColor: stateMode ? "#fff" : "#000" }} />
 
-                <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+                <Text style={[styles.header, { color: stateMode ? "#fff" : "#000" }]}>
                     관리자
                 </Text>
 
+                {!showLogoutTab && (
                 <TouchableOpacity onPress={loadAdminLogin}>
                     <View style={styles.settingRow}>
                         <View style={styles.settingItem}>
                             <Icons
                                 name="lock-closed"
                                 size={20}
-                                color={darkMode ? "#fff" : "#000"}
+                                color={stateMode ? "#fff" : "#000"}
                             />
                             <Text
                                 style={[
                                     styles.settingText,
-                                    { color: darkMode ? "#fff" : "#000" },
+                                    { color: stateMode ? "#fff" : "#000" },
                                 ]}
                             >
-                                관리자 메뉴
+                                관리자 로그인
                             </Text>
                         </View>
                     </View>
                 </TouchableOpacity>
+                )}
                 {showLogoutTab && (  // 조건부 렌더링
                 <TouchableOpacity onPress={logout}>
                     <View style={styles.settingRow}>
@@ -267,12 +270,12 @@ function Settings() {
                             <Icon
                                 name="logout"
                                 size={20}
-                                color={darkMode ? "#fff" : "#000"}
+                                color={stateMode ? "#fff" : "#000"}
                             />
                             <Text
                                 style={[
                                     styles.settingText,
-                                    { color: darkMode ? "#fff" : "#000" },
+                                    { color: stateMode ? "#fff" : "#000" },
                                 ]}
                             >
                                 로그아웃
@@ -281,9 +284,9 @@ function Settings() {
                     </View>
                 </TouchableOpacity>
                 )}
-                <Divider style={{ backgroundColor: darkMode ? "#fff" : "#000" }} />
+                <Divider style={{ backgroundColor: stateMode ? "#fff" : "#000" }} />
 
-                <Text style={[styles.header, { color: darkMode ? "#fff" : "#000" }]}>
+                <Text style={[styles.header, { color: stateMode ? "#fff" : "#000" }]}>
                     앱 정보
                 </Text>
                 <View style={[styles.settingRow, styles.anonymous]}>
@@ -291,12 +294,12 @@ function Settings() {
                         <Icon
                             name="database-lock"
                             size={20}
-                            color={darkMode ? "#fff" : "#000"}
+                            color={stateMode ? "#fff" : "#000"}
                         />
                         <Text
                             style={[
                                 styles.settingText,
-                                { color: darkMode ? "#fff" : "#000" },
+                                { color: stateMode ? "#fff" : "#000" },
                             ]}
                         >
                             익명 정보 수집 동의
@@ -313,12 +316,12 @@ function Settings() {
                             <Icons
                                 name="megaphone"
                                 size={20}
-                                color={darkMode ? "#fff" : "#000"}
+                                color={stateMode ? "#fff" : "#000"}
                             />
                             <Text
                                 style={[
                                     styles.settingText,
-                                    { color: darkMode ? "#fff" : "#000" },
+                                    { color: stateMode ? "#fff" : "#000" },
                                 ]}
                             >
                                 공지사항
@@ -332,25 +335,25 @@ function Settings() {
                             <Icon
                                 name="information"
                                 size={20}
-                                color={darkMode ? "#fff" : "#000"}
+                                color={stateMode ? "#fff" : "#000"}
                             />
                             <Text
                                 style={[
                                     styles.settingText,
-                                    { color: darkMode ? "#fff" : "#000" },
+                                    { color: stateMode ? "#fff" : "#000" },
                                 ]}
                             >
                                 버전
                             </Text>
                         </View>
-                        <Text style={{ color: darkMode ? "#fff" : "#000" }}>
+                        <Text style={{ color: stateMode ? "#fff" : "#000" }}>
                             1.0.0-alpha
                         </Text>
                     </View>
                 </TouchableOpacity>
                 <Toast
-                    style={{ backgroundColor: darkMode ? "#333" : "#fff" }}
-                    textStyle={{ color: darkMode ? "#fff" : "#000" }}
+                    style={{ backgroundColor: stateMode ? "#333" : "#fff" }}
+                    textStyle={{ color: stateMode ? "#fff" : "#000" }}
                 />
             </SafeAreaView>
             {RandomComponent && (
@@ -360,7 +363,23 @@ function Settings() {
                     visible={isModalVisible}
                     onRequestClose={closeModal}
                 >
-                    <AdminLogin closeModal={closeModal} />
+                    <RandomComponent />
+                    <TouchableOpacity
+                        onPress={closeModal}
+                        style={ Platform.OS === "ios" ? styles.IosClosebtn : styles.AndroidClosebtn }
+                    >
+                        <Text style={{ fontSize: 20, color: "#000" }}>닫기</Text>
+                    </TouchableOpacity>
+                </Modal>
+            )}
+            {LoginComponent && !showLogoutTab && (
+                <Modal
+                    animationType="slide"
+                    transparent={false}
+                    visible={isModalVisible}
+                    onRequestClose={closeModal}
+                >
+                    <AdminLogin closeModal={closeModal}/>
                     <TouchableOpacity
                         onPress={closeModal}
                         style={ Platform.OS === "ios" ? styles.IosClosebtn : styles.AndroidClosebtn }

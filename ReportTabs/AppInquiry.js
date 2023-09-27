@@ -118,10 +118,10 @@ export default function AppInquiry() {
                     const fileUrl = imageresponse.data.fileUrl;
                     fileUrls.push(fileUrl);
                 } catch (error) {
-                    return null
+                    console.error("AppInquriy:", error);
+                    return null;
                 }
             }
-            console.log(fileUrls);
 
             const formData = {
                 Category: RealCategory,
@@ -156,7 +156,7 @@ export default function AppInquiry() {
                 text1: "제출이 완료되었습니다.",
             });
         } catch (error) {
-            console.log(error);
+            console.error("AppInquriy:", error);
             // Toast 메시지 표시 (제출 실패 메시지)
             Toast.show({
                 text1: "제출에 실패하였습니다. 다시 시도해주세요.",

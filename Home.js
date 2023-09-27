@@ -15,7 +15,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { darkModeState } from "./dataState";
+import { darkModeState,osmstate } from "./dataState";
 // 스타일 임포트
 import styles from "./HomeStyle";
 import { useRecoilState } from "recoil";
@@ -30,7 +30,7 @@ export default function Home() {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   };
-
+  const [useOpenStreetMap, setUseOpenStreetMap] = useRecoilState(osmstate);
   const [location, setLocation] = useState(seoulCityHall);
   const [currentRegion, setCurrentRegion] = useState(seoulCityHall);
   const mapRef = useRef(null);
@@ -38,56 +38,23 @@ export default function Home() {
   const [bins, setBins] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedBin, setSelectedBin] = useState(null);
-  const [theme, setTheme] = useRecoilState(darkModeState) // 라이트 모드가 기본값
+  // const [theme, setTheme] = useRecoilState(darkModeState) // 라이트 모드가 기본값
   const [isOsm, setIsOsm] = useState(false); // 오픈스트리트 맵 사용 상태
   const [stateMode, setStateMode] =useRecoilState(darkModeState);
-  // useEffect(() => {
-  //     const intervalId = setInterval(async () => {
-  //         try {
-  //             const newTheme = await AsyncStorage.getItem('lightdark');
-  //             if (newTheme !== null && newTheme !== theme) {
-  //                 setTheme(newTheme);
-  //             }
 
-  //             const newMapType = await AsyncStorage.getItem('useOpenStreetMap');
-  //             if (newMapType !== null) {
-  //                 setIsOsm(newMapType === 'true');
-  //             }
-
-  //             // 여기에 useGPS 설정 값을 확인하는 로직을 추가합니다.
-  //             const useGPS = await AsyncStorage.getItem('useGPS');
-  //             if (useGPS !== null) {
-  //                 if (useGPS === 'true') {
-  //                     getCurrentLocation();
-  //                 } else {
-  //                     Toast.show({
-  //                         text1: "위치 정보를 사용할 수 없습니다. 설정을 확인하세요.",
-  //                     });
-  //                 }
-  //             }
-  //         } catch (error) {
-  //             console.error(error);
-  //         }
-  //     }, 500);
-
-  //     // Cleanup function to clear the interval on component unmount
-  //     return () => {
-  //         clearInterval(intervalId);
-  //     };
-  // }, [theme]);
 
   useEffect(() => {
     const intervalId = async () => {
       try {
-        const newTheme = await AsyncStorage.getItem("lightdark");
-        if (newTheme !== null && newTheme !== theme) {
-          setTheme(newTheme);
-        }
+        // const newTheme = await AsyncStorage.getItem("lightdark");
+        // if (newTheme !== null && newTheme !== theme) {
+        //   setTheme(newTheme);
+        // }
 
-        const newMapType = await AsyncStorage.getItem("useOpenStreetMap");
-        if (newMapType !== null) {
-          setIsOsm(newMapType === "true");
-        }
+        // const newMapType = await AsyncStorage.getItem("useOpenStreetMap");
+        // if (newMapType !== null) {
+        //   setIsOsm(newMapType === "true");
+        // }
 
         // 여기에 useGPS 설정 값을 확인하는 로직을 추가합니다.
         const useGPS = await AsyncStorage.getItem("useGPS");
@@ -115,7 +82,7 @@ export default function Home() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [theme]);
+  }, []);
 
   const getCurrentLocation = async () => {
     const useGPS = await AsyncStorage.getItem("useGPS");
@@ -180,25 +147,31 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const newTheme = await AsyncStorage.getItem("lightdark");
-      if (newTheme !== null && newTheme !== theme) {
-        setTheme(newTheme);
-      }
-      const newMapType = await AsyncStorage.getItem("useOpenStreetMap");
-      if (newMapType !== null) {
-        setIsOsm(newMapType === "true");
-      }
+      // 현재 저장된 주제를 불러옵니다.
+      // const newTheme = await AsyncStorage.getItem("lightdark");
+      
+      // // newTheme이 null이 아니고 현재 설정된 theme과 다를 때만 상태를 업데이트합니다.
+      // if (newTheme !== null && newTheme !== theme) {
+      //   setTheme(newTheme);
+      // }
+      // 맵 유형 (OpenStreetMap 사용 여부)을 설정합니다.\
+      setStateMode(false)
+      setUseOpenStreetMap(false)
+      // const newMapType = await AsyncStorage.getItem("useOpenStreetMap");
+      // if (newMapType == null) {
+      //   setIsOsm(newMapType === "true");
+      // }
     };
   
     fetchData();
-}, [theme]); // theme을 dependency로 추가
+  }, []); // dependency 배열을 비움
   
 
   // 스타일을 동적으로 적용할 수 있는 객체
   const dynamicStyles = {
     map: {
       ...styles.map,
-      backgroundColor: stateMode ? "#000000" : "#ffffff",
+      backgroundColor: stateMode ? "#ffffff" : "#000000",
     },
     toast: {
       backgroundColor: stateMode ? "#333333" : "#ffffff",
@@ -213,7 +186,7 @@ export default function Home() {
       color: stateMode ? "#ffffff" : "#000000",
     },
     buttonContainer: {
-      backgroundColor: stateMode ? "#333333" : "#ffffff",
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
     },
     iconColor: {
       color: stateMode ? "#ffffff" : "#000000",
@@ -231,20 +204,20 @@ export default function Home() {
 
   // 오픈스트리트맵
 
-  useEffect(() => {
-    const fetchMapType = async () => {
-      try {
-        const storedMapType = await AsyncStorage.getItem("useOpenStreetMap");
-        if (storedMapType !== null) {
-          setIsOsm(storedMapType === "true");
-        }
-      } catch (error) {
-        console.error("Home.js Failed to fetch map type:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchMapType = async () => {
+  //     try {
+  //       const storedMapType = await AsyncStorage.getItem("useOpenStreetMap");
+  //       if (storedMapType !== null) {
+  //         setIsOsm(storedMapType === "true");
+  //       }
+  //     } catch (error) {
+  //       console.error("Home.js Failed to fetch map type:", error);
+  //     }
+  //   };
 
-    fetchMapType();
-  }, [isOsm]);
+  //   fetchMapType();
+  // }, [isOsm]);
 
   // 오픈스트리트맵
 
@@ -294,7 +267,7 @@ export default function Home() {
   const openMap = (appName, latitude, longitude) => {
     const url =
       appName === "naver"
-        ? `nmap://route/walk?dlat=${latitude}&dlng=${longitude}`
+        ? `nmap://route/walk?slat=${coords.latitude}&slng=${coords.longitude}&dlat=${latitude}&dlng=${longitude}`
         : `kakaomap://route?sp=&ep=${latitude},${longitude}&by=FOOT`;
 
     Linking.openURL(url).catch((err) => {
@@ -354,15 +327,15 @@ export default function Home() {
           setIsMapReady(true);
         }}
         style={styles.map}
-        userInterfaceStyle={stateMode ? "light" : "dark"}
+        userInterfaceStyle={stateMode ? "dark" : "light"}
         initialRegion={location}
         onRegionChangeComplete={handleRegionChange}
         customMapStyle={stateMode ? darkMapStyle : []}
         mapType={
-          Platform.OS === "android" ? "standard" : isOsm ? "none" : "standard"
+          Platform.OS === "android" ? "standard" : useOpenStreetMap ? "none" : "standard"
         } // 오픈스트리트맵을 사용하려면 mapType을 'none'으로 설정. 단, 안드로이드는 오픈스트리트맵 로드가 되지 않아 구글 지도로만 출력
       >
-        {isOsm && <UrlTile urlTemplate={osmTileUrl} maximumZ={19} />}
+        {useOpenStreetMap && <UrlTile urlTemplate={osmTileUrl} maximumZ={19} />}
         {location && <Marker coordinate={location} pinColor="blue" />}
         {bins.map((bin) => (
           <Marker
@@ -544,3 +517,5 @@ export default function Home() {
     </View>
   );
 }
+
+
