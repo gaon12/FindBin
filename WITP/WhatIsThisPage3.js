@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import * as Location from 'expo-location';
 import axios from 'axios';
 
-const App = () => {
+const WhatIsThisPage3 = () => {
   const [weatherInfo, setWeatherInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -77,8 +77,8 @@ const App = () => {
           <Text style={styles.weatherText}>날씨: {data.wfKor}</Text>
           <Text style={styles.weatherText}>온도: {data.temp}°C</Text>
           <Text style={styles.weatherText}>습도: {data.reh}%</Text>
-          <Text style={styles.dateText}>* 기준 일자: {formatDate(item.description.header.tm)}</Text>
-          <Text style={styles.sourceText}> * 데이터: {(item.author)}</Text>
+          <Text style={styles.dateText}> {formatDate(item.description.header.tm)} 기준</Text>
+          <Text style={styles.sourceText}>데이터: {(item.author)}</Text>
         </View>
       </Card>
     );
@@ -137,9 +137,8 @@ const styles = StyleSheet.create({
   sourceText: {
     fontSize: 16,
     color: '#7F7F7F',
-    alignSelf: 'flex-start',
-    textAlign: 'left',
+    textAlign: 'center',
   }
 });
 
-export default App;
+export default WhatIsThisPage3;

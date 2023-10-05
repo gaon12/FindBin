@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     submitButton: {
-        backgroundColor: '#6200ea',
+        backgroundColor: "#6200ea",
     },
     IosText: {
         fontSize: 17,
