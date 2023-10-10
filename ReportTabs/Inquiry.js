@@ -1,3 +1,4 @@
+// Inquiry.js
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -22,18 +23,21 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { MaterialIcons } from "@expo/vector-icons";
 import Collapsible from "react-native-collapsible";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, UrlTile } from "react-native-maps";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Dialog as IOSDialog, CheckBox } from "@rneui/themed";
-import { darkModeState } from "../dataState.js";
+import { darkModeState, osmstate } from "../dataState.js";
 import { useRecoilState } from "recoil";
 
 // 스타일 임포트
 //import styles from "./InquiryStyle";
+
+// 구글 지도 다크모드 스타일
+const darkMapStyle = require("../dark.json");
 
 // 분류(카테고리)
 const CATEGORIES = [
@@ -68,6 +72,7 @@ export default function Inquiry() {
   const [canAddMarker, setCanAddMarker] = useState(true);
   const [currentRegion, setCurrentRegion] = useState(seoulCityHall);
   const [mapRef, setMapRef] = useState(null);
+  const [useOpenStreetMap, setUseOpenStreetMap] = useRecoilState(osmstate);
   const hideDialog = () => setVisible(false);
   const [Affiliation1, setAffiliation1] = useState("");
   const [Affiliation2, setAffiliation2] = useState("");
@@ -255,13 +260,10 @@ export default function Inquiry() {
       }
 
       const data = await response.json();
-      var Address = `${data.address.province || ""} ${
-        data.address.city || ""
-      } ${data.address.county || ""} ${data.address.city_district || ""} ${
-        data.address.village || ""
-      }${data.address.borough || ""} ${data.address.suburb || ""} ${
-        data.address.road || ""
-      } ${data.address.amenity || ""}`
+      var Address = `${data.address.province || ""} ${data.address.city || ""
+        } ${data.address.county || ""} ${data.address.city_district || ""} ${data.address.village || ""
+        }${data.address.borough || ""} ${data.address.suburb || ""} ${data.address.road || ""
+        } ${data.address.amenity || ""}`
         .replace(/ +/g, " ")
         .trim();
       if (data.address.city == null) {
@@ -274,9 +276,8 @@ export default function Inquiry() {
           .trim()
       );
       setAffiliation2(
-        `${data.address.county || ""} ${data.address.city_district || ""}${
-          data.address.borough || ""
-        }`
+        `${data.address.county || ""} ${data.address.city_district || ""}${data.address.borough || ""
+          }`
           .replace(/ +/g, " ")
           .trim()
       );
@@ -354,7 +355,10 @@ export default function Inquiry() {
     if (address !== null) {
       setKoreanAddress(address); // 주소 정보를 설정합니다.
     } else {
-      showToastMessage("주소 정보를 가져올 수 없습니다.");
+      Toast.show({
+        text1:
+          "주소 정보를 가져올 수 없습니다.",
+      });
     }
 
     setCanAddMarker(false);
@@ -363,11 +367,18 @@ export default function Inquiry() {
     }, 2000);
   };
 
+  const osmTileUrl =
+    stateMode
+      ? // ? "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
+      "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" // 다크모드
+      : "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // 라이트 모드
+
   // 라이트모드 다크모드
 
   useEffect(() => {
     const fetchData = async () => {
       setStateMode(false);
+      setUseOpenStreetMap(false)
     };
 
     fetchData();
@@ -460,7 +471,7 @@ export default function Inquiry() {
       position: "absolute",
       top: "5%",
       right: "2%",
-      backgroundColor: stateMode ? "#000000" : "#ffffff",
+      backgroundColor: stateMode ? "#5d5d5d" : "#ffffff",
       borderRadius: 8,
       padding: 8,
     },
@@ -470,6 +481,7 @@ export default function Inquiry() {
       alignItems: "center",
     },
   };
+
 
   return (
     <Provider>
@@ -516,7 +528,7 @@ export default function Inquiry() {
                     onDismiss={hideDialog}
                     style={dynamicStyles.modalStyle}
                   >
-                    <Dialog.Title style={{color: stateMode ? "#fff" : "#000"}}>분류 선택</Dialog.Title>
+                    <Dialog.Title style={{ color: stateMode ? "#fff" : "#000" }}>분류 선택</Dialog.Title>
                     <Dialog.Content>
                       <RadioButton.Group
                         onValueChange={(value) => {
@@ -527,15 +539,15 @@ export default function Inquiry() {
                       >
                         {CATEGORIES.map((cat) => (
                           <RadioButton.Item
-                          key={cat.value}
-                          label={cat.label}
-                          value={cat.value}
-                          position="leading"
-                          labelStyle={[
+                            key={cat.value}
+                            label={cat.label}
+                            value={cat.value}
+                            position="leading"
+                            labelStyle={[
                               { textAlign: "left", marginLeft: 10 },
                               { color: stateMode ? "#fff" : "#000" }  // 여기에서 다크모드에 따른 색상 변경을 적용
-                          ]}
-                      />
+                            ]}
+                          />
                         ))}
                       </RadioButton.Group>
                     </Dialog.Content>
@@ -549,16 +561,16 @@ export default function Inquiry() {
                     onBackdropPress={toggleDialog5}
                     style={dynamicStyles.modalStyle}
                   >
-                    <IOSDialog.Title title="분류 선택" style={{color: stateMode ? "#fff" : "#000"}} />
+                    <IOSDialog.Title title="분류 선택" style={{ color: stateMode ? "#fff" : "#000" }} />
                     {CATEGORIES.map((cat, i) => (
                       <CheckBox
-                      key={i}
-                      title={cat.label}
-                      containerStyle={{
+                        key={i}
+                        title={cat.label}
+                        containerStyle={{
                           backgroundColor: stateMode ? "#000" : "#fff",
                           borderWidth: 0
-                      }}
-                      textStyle={{ color: stateMode ? "#fff" : "#000" }}  
+                        }}
+                        textStyle={{ color: stateMode ? "#fff" : "#000" }}
                         checkedIcon="dot-circle-o"
                         uncheckedIcon="circle-o"
                         checked={checked === i}
@@ -590,6 +602,11 @@ export default function Inquiry() {
                   <MapView
                     ref={(ref) => setMapRef(ref)}
                     style={{ width: "100%", height: "100%" }}
+                    userInterfaceStyle={stateMode ? "dark" : "light"}
+                    customMapStyle={stateMode ? darkMapStyle : []}
+                    mapType={
+                      Platform.OS === "android" ? "standard" : useOpenStreetMap ? "none" : "standard"
+                    }
                     initialRegion={{
                       latitude: 37.541,
                       longitude: 126.986,
@@ -599,6 +616,8 @@ export default function Inquiry() {
                     onMapReady={onMapReady}
                     onPress={addMarker}
                   >
+                    
+                    {useOpenStreetMap && <UrlTile urlTemplate={osmTileUrl} maximumZ={19} />}
                     {markers.map((marker, index) => (
                       <Marker
                         key={index}
@@ -610,6 +629,7 @@ export default function Inquiry() {
                       />
                     ))}
                   </MapView>
+
                 </View>
                 <View style={{ ...dynamicStyles.buttonContainer }}>
                   <TouchableOpacity

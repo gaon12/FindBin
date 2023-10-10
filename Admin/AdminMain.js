@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppMain from './AppMain';
 import EnvMain from './EnvMain';
 import EnvAdmin from './EnvAdmin';
+import AppEnd from './AppEnd';
+import EnvEnd from './EnvEnd';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -49,6 +51,10 @@ export default function Report() {
                 <Tab.Screen name="쓰레기통 민원" component={EnvMain} />
                 {showAdminTab && (  // 조건부 렌더링
                     <Tab.Screen name="앱 버그" component={AppMain} />
+                )}
+                <Tab.Screen name="쓰레기통 민원 완료" component={EnvEnd} />
+                {showAdminTab && (  // 조건부 렌더링
+                    <Tab.Screen name="앱 버그 완료" component={AppEnd} />
                 )}
             </Tab.Navigator>
         </View>

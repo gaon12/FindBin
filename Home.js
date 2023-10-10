@@ -221,6 +221,34 @@ export default function Home() {
 
   // 오픈스트리트맵
 
+  const getAddressFromCoordinates = async (latitude, longitude) => {
+    const apiUrl = "https://nominatim.openstreetmap.org/reverse";
+    const format = "json";
+
+    try {
+        const response = await fetch(
+            `${apiUrl}?lat=${latitude}&lon=${longitude}&format=${format}`
+        );
+
+        if (!response.ok) {
+            throw new Error("API 요청 실패");
+        }
+
+        const data = await response.json();
+        var Address = `${data.address.province || ""} ${data.address.city || ""
+        } ${data.address.county || ""} ${data.address.city_district || ""} ${data.address.village || ""
+        }${data.address.borough || ""} ${data.address.suburb || ""} ${data.address.road || ""
+        } ${data.address.amenity || ""}`
+            .replace(/ +/g, " ")
+            .trim();
+
+        return Address;
+    } catch (error) {
+        console.error('Failed to get address:', error);
+        return null;
+    }
+};
+
   const calculateDistance = (latitudeDelta) => {
     // 선형 변환 상수
     const LINEAR_FACTOR = 111000; // 대략적으로 1도의 위도는 111km
@@ -264,21 +292,26 @@ export default function Home() {
     fetchBins(region.latitude, region.longitude, region.latitudeDelta);
   };
 
-  const openMap = (appName, latitude, longitude) => {
+  const openMap = async (appName, latitude, longitude) => {
+    const sourceAddress = await getAddressFromCoordinates(location.latitude, location.longitude);
+    const destName = selectedBin?.road_address || '목적지';  // 만약 selectedBin?.road_address가 없다면 '목적지'를 기본값으로 사용합니다.
+
     const url =
-      appName === "naver"
-        ? `nmap://route/walk?slat=${coords.latitude}&slng=${coords.longitude}&dlat=${latitude}&dlng=${longitude}`
-        : `kakaomap://route?sp=&ep=${latitude},${longitude}&by=FOOT`;
+        appName === "naver"
+            ? `nmap://route/walk?slat=${location.latitude}&slng=${location.longitude}&sname=${encodeURIComponent(sourceAddress)}&dlat=${latitude}&dlng=${longitude}&dname=${encodeURIComponent(destName)}&appname=com.example.myapp`
+            : `kakaomap://route?sp=&ep=${latitude},${longitude}&by=FOOT`;
 
     Linking.openURL(url).catch((err) => {
-      Toast.show({
-        text1: `${
-          appName === "naver" ? "네이버 지도" : "카카오맵"
-        } 앱을 열 수 없습니다.`,
-      });
-      console.error("Home.js 앱을 여는데 실패했어요: ", err);
+        Toast.show({
+            text1: `${
+                appName === "naver" ? "네이버 지도" : "카카오맵"
+            } 앱을 열 수 없습니다.`,
+        });
+        console.error("Home.js 앱을 여는데 실패했어요: ", err);
     });
-  };
+};
+
+
 
   const calloutStyles = {
     container: {
@@ -404,7 +437,8 @@ export default function Home() {
                   openMap(
                     "naver",
                     selectedBin?.latitude,
-                    selectedBin?.longitude
+                    selectedBin?.longitude,
+                    selectedBin?.road_address
                   )
                 }
               >
@@ -517,5 +551,3 @@ export default function Home() {
     </View>
   );
 }
-
-

@@ -261,6 +261,10 @@ export default function EnvMain() {
     </SafeAreaView>
   );
 
+  const ForwardedToast = React.forwardRef((props, ref) => {
+    return <Toast {...props} forwardedRef={ref} />;
+  });
+
   const { width, height } = Dimensions.get('window');
 
   const isNetworkError = (errorMessage) => {
@@ -364,7 +368,7 @@ export default function EnvMain() {
             <Text style={[styles.buttonText, isAnswering && styles.disabledButtonText]}>닫기</Text>
           </TouchableOpacity>
         </View>
-        <Toast ref={toastRef} />
+        <ForwardedToast ref={toastRef} />
       </Modal>
     </SafeAreaView>
   );

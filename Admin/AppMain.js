@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 
-export default function EnvMain() {
+export default function AppMain() {
   const [posts, setPosts] = useState([]);
   const [answer, setAnswer] = useState('');
   const [pageno, setPageno] = useState(1);
