@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
+import { darkModeState } from "../dataState.js";
+import { useRecoilState } from "recoil";
 
 export default function AppMain() {
   const [posts, setPosts] = useState([]);
@@ -18,6 +20,7 @@ export default function AppMain() {
   const [currentFullImageUrl, setCurrentFullImageUrl] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isAnswering, setIsAnswering] = useState(false);
+  const [stateMode, setStateMode] = useRecoilState(darkModeState);
 
   const toastRef = useRef(null); 
 
@@ -55,7 +58,9 @@ export default function AppMain() {
       UserName,
       AccountID,
       pageno: nextPage,
+      IsAnswered: "False",
     };
+    console.log(requestData);
 
     let response;
     try {
@@ -239,7 +244,7 @@ export default function AppMain() {
       <ScrollView>
         <TouchableWithoutFeedback onPress={() => openModal(item, item)}>
           <Card containerStyle={styles.cardContainer}>
-            <Card.Title>{item.Category}</Card.Title>
+          <Card.Title style={{ color: stateMode ? "#ffffff" : "#000000" }}>{item.Category}</Card.Title>
             <Card.Divider />
             <View style={styles.cardContent}>
               <Text style={styles.cardText}>{item.Contents}</Text>
@@ -277,6 +282,144 @@ export default function AppMain() {
       autoHide: true,
     });
   };
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingTop: 20,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+    },
+    cardContainer: {
+      borderRadius: 10,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+    },
+    cardContent: {
+      flex: 1,
+      flexDirection: 'column',
+    },
+    cardText: {
+      marginBottom: 10,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    cardDate: {
+      textAlign: 'right',
+      fontStyle: 'italic',
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    buttonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      padding: 10,
+    },
+    modalContainer: {
+      flex: 1,
+      margin: 20,
+      padding: 20,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+      borderRadius: 10,
+    },
+    imagePreviewContainer: {
+      flexDirection: 'column',  // 세로로 배열
+    },
+    imageRow: {
+      flexDirection: 'row',  // 가로로 이미지를 정렬
+      alignItems: 'center',  // 센터 정렬
+    },
+    imagePreviewText: {
+      marginBottom: 10,  // 텍스트와 이미지 사이의 간격
+    },
+    thumbnailImage: {
+      width: 70,
+      height: 70,
+      marginRight: 10,  // 이미지와 이미지 사이의 간격
+    },
+    fullImageView: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    fullImage: {
+      zIndex: 3,
+    },
+    modalTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    modalText: {
+      fontSize: 18,
+      marginBottom: 20,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    modalDate: {
+      fontSize: 16,
+      fontStyle: 'italic',
+      marginBottom: 20,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    IosModalDetail: {
+      marginTop: 500,
+    },
+    TextInput: {
+      flex: 1,
+      borderWidth: 1,
+      marginBottom: 20,
+      marginTop: 20,
+    },
+    answerImage: {
+      width: 100,
+      height: 100,
+      resizeMode: 'cover',
+    },
+    deleteButton: {
+      position: 'absolute',
+      right: -10,
+      top: -10,
+      backgroundColor: 'red',
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    imageRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+    },
+    imageButton: {
+      height: 30,
+      justifyContent: 'center',
+      backgroundColor: "gray",
+      marginBottom: 10,
+    },
+    AnswerButton: {
+      height: 30,
+      justifyContent: 'center',
+      backgroundColor: "red",
+      marginBottom: 10,
+    },
+    closeButton: {
+      height: 30,
+      justifyContent: 'center',
+      backgroundColor: "blue",
+    },
+    buttonText: {
+      color: "white",
+      textAlign: "center",
+      fontWeight: "bold",
+      fontSize: 16,
+    },
+    disabledButton: {
+      backgroundColor: 'gray', // 비활성화 상태일 때 배경색을 회색으로 설정
+    },
+    disabledButtonText: {
+      color: 'white', // 비활성화 상태일 때 텍스트 색상을 흰색으로 설정
+    },
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -325,8 +468,15 @@ export default function AppMain() {
             </SafeAreaView>
           )}
           <TextInput
-            style={styles.TextInput}
+           style={[
+            styles.TextInput,
+            {
+              color: stateMode ? "#ffffff" : "#000000",
+              borderColor: stateMode ? "#ffffff" : "#000000",
+            },
+          ]}
             placeholder="답변 내용"
+            placeholderTextColor={stateMode ? "#ffffff" : "#000000"}
             value={answer}
             onChangeText={handleAnswerChange}
           />
@@ -370,130 +520,3 @@ export default function AppMain() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  cardContainer: {
-    borderRadius: 10,
-  },
-  cardContent: {
-    flex: 1,
-    flexDirection: 'column',
-  },
-  cardText: {
-    marginBottom: 10,
-  },
-  cardDate: {
-    textAlign: 'right',
-    fontStyle: 'italic',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 10,
-  },
-  modalContainer: {
-    flex: 1,
-    margin: 20,
-  },
-  imagePreviewContainer: {
-    flexDirection: 'column',  // 세로로 배열
-  },
-  imageRow: {
-    flexDirection: 'row',  // 가로로 이미지를 정렬
-    alignItems: 'center',  // 센터 정렬
-  },
-  imagePreviewText: {
-    marginBottom: 10,  // 텍스트와 이미지 사이의 간격
-  },
-  thumbnailImage: {
-    width: 70,
-    height: 70,
-    marginRight: 10,  // 이미지와 이미지 사이의 간격
-  },
-  fullImageView: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullImage: {
-    zIndex: 3,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  modalDate: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    marginBottom: 20,
-  },
-  IosModalDetail: {
-    marginTop: 500,
-  },
-  TextInput: {
-    flex: 1,
-    borderWidth: 1,
-    marginBottom: 20,
-    marginTop: 20,
-  },
-  answerImage: {
-    width: 100,
-    height: 100,
-    resizeMode: 'cover',
-  },
-  deleteButton: {
-    position: 'absolute',
-    right: -10,
-    top: -10,
-    backgroundColor: 'red',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  imageRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-  },
-  imageButton: {
-    height: 30,
-    justifyContent: 'center',
-    backgroundColor: "gray",
-    marginBottom: 10,
-  },
-  AnswerButton: {
-    height: 30,
-    justifyContent: 'center',
-    backgroundColor: "red",
-    marginBottom: 10,
-  },
-  closeButton: {
-    height: 30,
-    justifyContent: 'center',
-    backgroundColor: "blue",
-  },
-  buttonText: {
-    color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  disabledButton: {
-    backgroundColor: 'gray', // 비활성화 상태일 때 배경색을 회색으로 설정
-  },
-  disabledButtonText: {
-    color: 'white', // 비활성화 상태일 때 텍스트 색상을 흰색으로 설정
-  },
-});

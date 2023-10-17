@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, SafeAreaView, ScrollView, Modal } from 'react-native';
-import { DataTable, Button } from 'react-native-paper';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  Modal,
+} from "react-native";
+import { DataTable, Button } from "react-native-paper";
 import MapView, { Marker, UrlTile, Callout } from "react-native-maps";
-import axios from 'axios';
+import axios from "axios";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRecoilState } from "recoil";
 import { darkModeState, osmstate } from "../dataState.js";
+
+const darkMapStyle = require("../dark.json");
 
 export default function App() {
   const seoulCityHall = {
@@ -17,7 +29,7 @@ export default function App() {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   };
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [showTable, setShowTable] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -27,10 +39,12 @@ export default function App() {
   const [currentRegion, setCurrentRegion] = useState(seoulCityHall);
   const [mapRef, setMapRef] = useState(null);
   const [useOpenStreetMap, setUseOpenStreetMap] = useRecoilState(osmstate);
-  const [stateMode, setStateMode] = useRecoilState(darkModeState);
   const [canAddMarker, setCanAddMarker] = useState(true);
   const [mapInitialized, setMapInitialized] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [lastPage, setLastPage] = useState(false);
+  const [stateMode, setStateMode] = useRecoilState(darkModeState);
 
   const [sidoName, setSidoName] = useState("");
   const [guName, setGuName] = useState("");
@@ -46,39 +60,50 @@ export default function App() {
   const [adminName, setAdminName] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
 
-  const osmTileUrl =
-    stateMode
-      ? // ? "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
+  const markerRefs = useRef([]);
+
+  const osmTileUrl = stateMode
+    ? // ? "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
       "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" // 다크모드
-      : "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // 라이트 모드
+    : "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // 라이트 모드
 
-
-  const fetchData = async (action, searchValue) => {
+  const fetchData = async (action, searchValue, checkNextPage = false) => {
     setLoading(true);
+    let nextPage = checkNextPage ? pageno + 1 : pageno;
     try {
-      const response = await axios.post('https://findbin.uiharu.dev/app/api/admin/api.php', {
-        Actions: action,
-        pageno: pageno,
-        ...(searchValue && { SearchValue: searchValue }),
-      });
+      const response = await axios.post(
+        "https://findbin.uiharu.dev/app/api/admin/api.php",
+        {
+          Actions: action,
+          pageno: nextPage,
+          ...(searchValue && { SearchValue: searchValue }),
+        }
+      );
       if (response.data.StatusCode === 200) {
-        setResults(response.data.data);
+        if (response.data.data.length === 0) {
+          setLastPage(true);
+        } else {
+          setLastPage(false);
+          if (!checkNextPage) {
+            setResults(response.data.data);
+          }
+        }
       } else {
-        console.error('Error:', response.data.message);
+        console.error("Error:", response.data.message);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData('AllList');
+    fetchData("AllList");
   }, [pageno]);
 
   const handleSearch = () => {
-    fetchData('search', query);
+    fetchData("search", query);
   };
   const onMapReady = () => {
     setMapInitialized(true);
@@ -101,8 +126,12 @@ export default function App() {
     if (address !== null) {
       const addressArray = address.split(" ");
       setSidoName(addressArray[0]);
-      addressArray.forEach(segment => {
-        if (segment.endsWith("시") || segment.endsWith("군") || segment.endsWith("구")) {
+      addressArray.forEach((segment) => {
+        if (
+          segment.endsWith("시") ||
+          segment.endsWith("군") ||
+          segment.endsWith("구")
+        ) {
           setGuName(segment);
         } else if (segment.endsWith("로") || segment.endsWith("길")) {
           setRoadName(segment);
@@ -112,11 +141,9 @@ export default function App() {
       setLatitude(latitude.toFixed(6));
       setLongitude(longitude.toFixed(6));
       setRoadAddress(address);
-
     } else {
       Toast.show({
-        text1:
-          "주소 정보를 가져올 수 없습니다.",
+        text1: "주소 정보를 가져올 수 없습니다.",
       });
     }
 
@@ -140,10 +167,13 @@ export default function App() {
       }
 
       const data = await response.json();
-      var Address = `${data.address.province || ""} ${data.address.city || ""
-        } ${data.address.county || ""} ${data.address.city_district || ""} ${data.address.village || ""
-        }${data.address.borough || ""} ${data.address.suburb || ""} ${data.address.road || ""
-        } ${data.address.amenity || ""}`
+      var Address = `${data.address.province || ""} ${
+        data.address.city || ""
+      } ${data.address.county || ""} ${data.address.city_district || ""} ${
+        data.address.village || ""
+      }${data.address.borough || ""} ${data.address.suburb || ""} ${
+        data.address.road || ""
+      } ${data.address.amenity || ""}`
         .replace(/ +/g, " ")
         .trim();
 
@@ -151,7 +181,7 @@ export default function App() {
         var Address = "\n[E404] 현재 좌표 정보 부족.\n다른 좌표를 입력하세요.";
         return null;
       }
-      
+
       return Address;
     } catch (error) {
       return null; // 오류 시 null을 반환하거나 다른 처리를 수행할 수 있습니다.
@@ -159,11 +189,163 @@ export default function App() {
   };
 
   const openModal = () => {
+    const today = new Date();
+    const year = today.getFullYear().toString();
+    setInstallYear(year);
     setModalVisible(true);
+  };
+
+  const handleInputChange = (input) => {
+    const onlyNums = input.replace(/\D/g, ""); // 숫자가 아닌 모든 문자를 제거합니다.
+    let formattedInput;
+    if (onlyNums.startsWith("02")) {
+      // 서울 지역번호인 경우
+      if (onlyNums.length === 9) {
+        // 2-3-4 형식
+        formattedInput = onlyNums.replace(
+          /^(\d{2})(\d{3})(\d{4}).*/,
+          "$1-$2-$3"
+        );
+      } else if (onlyNums.length === 10) {
+        // 2-4-4 형식
+        formattedInput = onlyNums.replace(
+          /^(\d{2})(\d{4})(\d{4}).*/,
+          "$1-$2-$3"
+        );
+      }
+    } else {
+      // 그 외의 지역번호인 경우
+      if (onlyNums.length === 10) {
+        // 3-3-4 형식
+        formattedInput = onlyNums.replace(
+          /^(\d{3})(\d{3})(\d{4}).*/,
+          "$1-$2-$3"
+        );
+      } else if (onlyNums.length === 11) {
+        // 3-4-4 형식
+        formattedInput = onlyNums.replace(
+          /^(\d{3})(\d{4})(\d{4}).*/,
+          "$1-$2-$3"
+        );
+      }
+    }
+    setAdminPhone(formattedInput || onlyNums); // 형식이 지정되지 않은 경우 원래 숫자 문자열을 사용합니다.
   };
 
   const closeModal = () => {
     setModalVisible(false);
+  };
+
+  const AddBin = async () => {
+    setIsAdding(true);
+
+    try {
+      const formData = {
+        sidoName: sidoName,
+        guName: guName,
+        roadName: roadName,
+        detailLocation: detailLocation,
+        roadAddress: roadAddress,
+        latitude: latitude,
+        longitude: longitude,
+        placeType: placeType,
+        trashType: trashType,
+        form: form,
+        installYear: installYear,
+        adminName: adminName,
+        adminPhone: adminPhone,
+        Actions: "add",
+      };
+
+      const jsonString = JSON.stringify(formData);
+
+      // 서버 엔드포인트 URL 설정
+      const apiUrl2 = "https://findbin.uiharu.dev/app/api/admin/api.php";
+
+      // Axios를 사용하여 POST 요청 보내기
+      const respone = await axios.post(apiUrl2, jsonString, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      // 오류 처리
+      console.error("AppMain: ", error);
+      if (isNetworkError(error.message)) {
+        // 네트워크 오류가 발생한 경우 토스트 메시지를 표시
+        handleNetworkError();
+      }
+      setIsAdding(false);
+      return null;
+    }
+    fetchData("AllList");
+
+    setSidoName("");
+    setGuName("");
+    setRoadName("");
+    setDetailLocation("");
+    setRoadAddress("");
+    setLatitude("");
+    setLongitude("");
+    setPlaceType("");
+    setTrashType("");
+    setFormseState("");
+    setInstallYear("");
+    setAdminName("");
+    setAdminPhone("");
+    setIsAdding(false);
+    setModalVisible(false);
+  };
+
+  const handleDelete = async (id, road_address) => {
+    setIsAdding(true);
+
+    try {
+      const formData = {
+        Actions: "remove",
+        id: id.toString(),
+        road_address: road_address,
+      };
+
+      const jsonString = JSON.stringify(formData);
+
+      // 서버 엔드포인트 URL 설정
+      const apiUrl2 = "https://findbin.uiharu.dev/app/api/admin/api.php";
+
+      // Axios를 사용하여 POST 요청 보내기
+      const respone = await axios.post(apiUrl2, jsonString, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (error) {
+      // 오류 처리
+      console.error("AppMain: ", error);
+      if (isNetworkError(error.message)) {
+        // 네트워크 오류가 발생한 경우 토스트 메시지를 표시
+        handleNetworkError();
+      }
+      setIsAdding(false);
+      return null;
+    }
+    fetchData("AllList");
+
+    setIsAdding(false);
+  };
+
+  const MapMove = async (latitude, longitude) => {
+    const newLocation = {
+      latitude: latitude,
+      longitude: longitude,
+      latitudeDelta: currentRegion.latitudeDelta,
+      longitudeDelta: currentRegion.longitudeDelta,
+    };
+    setShowTable(!showTable);
+    // 현재 위치 정보를 설정합니다.
+    setLocation(newLocation);
+    setCurrentRegion(newLocation);
+
+    mapRef.animateToRegion(newLocation, 1000);
   };
 
   const dynamicStyles = {
@@ -186,6 +368,7 @@ export default function App() {
       color: stateMode ? "#ffffff" : "#000000",
     },
     container: {
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
       flex: 1,
       padding: 16,
       height: "auto",
@@ -264,8 +447,65 @@ export default function App() {
     },
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 10,
+    },
+    searchBar: {
+      flexDirection: "row",
+      marginBottom: 10,
+      alignItems: "center",
+      backgroundColor: stateMode ? "#000" : "#fff",
+    },
+    input: {
+      flex: 1,
+      borderWidth: 1,
+      marginRight: 10,
+      paddingLeft: 10,
+      borderRadius: 5,
+      marginVertical: 10,
+      color: stateMode ? "#ffffff" : "#000000",
+      borderColor: stateMode ? "#ffffff" : "#808080",
+    },
+    ModalInput: {
+      height: 40,
+      borderColor: "gray",
+      borderWidth: 1,
+      marginBottom: 10,
+      paddingLeft: 10,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    textContainer: {
+      flexDirection: "row",
+      marginBottom: 10,
+    },
+    textLabel: {
+      fontWeight: "bold",
+    },
+    markerText: {
+      backgroundColor: "rgba(255, 255, 255, 0.7)",
+      padding: 2,
+      borderRadius: 5,
+      width: 100,
+      height: 30,
+      textAlign: "center",
+      verticalAlign: "middle",
+    },
+    buttonContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      padding: 10,
+    },
+  });
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={dynamicStyles.container}>
       <View style={styles.searchBar}>
         <TextInput
           style={styles.input}
@@ -273,6 +513,7 @@ export default function App() {
           onChangeText={setQuery}
           placeholder="검색어를 입력하세요"
           editable={!loading}
+          placeholderTextColor={stateMode ? "#ffffff" : "#000000"}
         />
         <Button
           mode="contained"
@@ -290,7 +531,7 @@ export default function App() {
         textColor="blue"
         onPress={() => setShowTable(!showTable)}
       >
-        {showTable ? '표 접기' : '표 펼치기'}
+        {showTable ? "표 접기" : "표 펼치기"}
       </Button>
       <ScrollView>
         {loading ? (
@@ -302,21 +543,96 @@ export default function App() {
           showTable && (
             <DataTable>
               <DataTable.Header>
-                <DataTable.Title>주소</DataTable.Title>
-                <DataTable.Title numeric>관리자 번호</DataTable.Title>
-                <DataTable.Title numeric>삭제</DataTable.Title>
+                <DataTable.Title style={{ flex: 5 }}>
+                  <Text style={{ color: stateMode ? "#ffffff" : "#000000" }}>
+                    주소
+                  </Text>
+                </DataTable.Title>
+                <DataTable.Title numeric style={{ flex: 3 }}>
+                  <Text style={{ color: stateMode ? "#ffffff" : "#000000" }}>
+                    관리자 번호
+                  </Text>
+                </DataTable.Title>
+                <DataTable.Title numeric style={{ flex: 2 }}>
+                  <Text style={{ color: stateMode ? "#ffffff" : "#000000" }}>
+                    삭제
+                  </Text>
+                </DataTable.Title>
               </DataTable.Header>
               {results.map((result, index) => (
                 <DataTable.Row key={index}>
-                  <DataTable.Cell>{result.road_address}</DataTable.Cell>
-                  <DataTable.Cell numeric>{result.admin_phone}</DataTable.Cell>
-                  <DataTable.Cell numeric>
-                    <TouchableOpacity onPress={() => handleDelete(result.id)}>
-                      <Text>삭제</Text>
+                  <DataTable.Cell
+                    style={{
+                      flex: 6,
+                      color: stateMode ? "#ffffff" : "#000000",
+                    }}
+                  >
+                    <ScrollView horizontal>
+                      <TouchableOpacity
+                        onPress={() =>
+                          MapMove(result.latitude, result.longitude)
+                        }
+                      >
+                        <Text
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                          style={{
+                            maxWidth: 200,
+                            color: stateMode ? "#ffffff" : "#000000",
+                          }}
+                        >
+                          {result.road_address.length > 17
+                            ? `${result.road_address.substring(0, 14)}...`
+                            : result.road_address}
+                        </Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </DataTable.Cell>
+                  <DataTable.Cell
+                    numeric
+                    style={{
+                      flex: 3,
+                      marginRight: 5,
+                    }}
+                  >
+                    <Text style={{ color: stateMode ? "#ffffff" : "#000000" }}>
+                      {result.admin_phone}
+                    </Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={{ flex: 1 }}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        handleDelete(result.id, result.road_address)
+                      }
+                    >
+                      <Text style={{ color: stateMode ? "#ffffff" : "red" }}>
+                        {" "}
+                        삭제
+                      </Text>
                     </TouchableOpacity>
                   </DataTable.Cell>
                 </DataTable.Row>
               ))}
+              <View style={styles.buttonContainer}>
+                <Button
+                  mode="contained"
+                  buttonColor="#00BCD4"
+                  textColor="blue"
+                  onPress={() => setPageno((prev) => Math.max(prev - 1, 1))}
+                  disabled={pageno === 1}
+                >
+                  이전
+                </Button>
+                <Button
+                  mode="contained"
+                  buttonColor="#00BCD4"
+                  textColor="blue"
+                  onPress={() => setPageno((prev) => prev + 1)}
+                  disabled={lastPage}
+                >
+                  다음
+                </Button>
+              </View>
             </DataTable>
           )
         )}
@@ -330,7 +646,11 @@ export default function App() {
             userInterfaceStyle={stateMode ? "dark" : "light"}
             customMapStyle={stateMode ? darkMapStyle : []}
             mapType={
-              Platform.OS === "android" ? "standard" : useOpenStreetMap ? "none" : "standard"
+              Platform.OS === "android"
+                ? "standard"
+                : useOpenStreetMap
+                ? "none"
+                : "standard"
             }
             initialRegion={{
               latitude: 37.541,
@@ -341,8 +661,9 @@ export default function App() {
             onMapReady={onMapReady}
             onPress={addMarker}
           >
-
-            {useOpenStreetMap && <UrlTile urlTemplate={osmTileUrl} maximumZ={19} />}
+            {useOpenStreetMap && (
+              <UrlTile urlTemplate={osmTileUrl} maximumZ={19} />
+            )}
             {markers.map((marker, index) => (
               <Marker
                 key={index}
@@ -350,11 +671,21 @@ export default function App() {
                   latitude: marker.latitude,
                   longitude: marker.longitude,
                 }}
-                >
-                  <Callout onPress={openModal}>
-                    <Text>쓰레기통 추가</Text>
-                  </Callout>
-                </Marker>              
+                ref={markerRefs.current[index]}
+                onPress={openModal}
+              >
+                <TouchableOpacity style={{ alignItems: "center" }}>
+                  <Text style={styles.markerText}>쓰레기통 추가</Text>
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      backgroundColor: "red",
+                      borderRadius: 5,
+                    }}
+                  />
+                </TouchableOpacity>
+              </Marker>
             ))}
           </MapView>
           <View style={{ ...dynamicStyles.buttonContainer }}>
@@ -371,11 +702,7 @@ export default function App() {
                 );
               }}
             >
-              <Ionicons
-                name="add"
-                size={24}
-                style={dynamicStyles.iconColor}
-              />
+              <Ionicons name="add" size={24} style={dynamicStyles.iconColor} />
             </TouchableOpacity>
             <TouchableOpacity
               style={dynamicStyles.mapButton}
@@ -404,15 +731,13 @@ export default function App() {
                 const useGPS = await AsyncStorage.getItem("useGPS");
                 if (status !== "granted") {
                   Toast.show({
-                    text1:
-                      "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
+                    text1: "위치 권한이 없어 현재 위치로 이동할 수 없습니다.",
                   });
                 } else {
                   if (useGPS === "true") {
-                    const { coords } =
-                      await Location.getCurrentPositionAsync({
-                        accuracy: Location.Accuracy.Lowest,
-                      });
+                    const { coords } = await Location.getCurrentPositionAsync({
+                      accuracy: Location.Accuracy.Lowest,
+                    });
 
                     const newLocation = {
                       latitude: coords.latitude,
@@ -442,133 +767,100 @@ export default function App() {
               />
             </TouchableOpacity>
           </View>
-          <Toast
-            style={dynamicStyles.toast}
-            textStyle={{ color: dynamicStyles.toast.color }}
-          />
         </View>
         <Modal visible={isModalVisible}>
-          <View style={styles.modalContent}>
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="sido_name"
-              value={sidoName}
-              onChangeText={setSidoName}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="gu_name"
-              value={guName}
-              onChangeText={setGuName}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="road_name"
-              value={roadName}
-              onChangeText={setRoadName}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="detail_location"
-              value={detailLocation}
-              onChangeText={setDetailLocation}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="road_address"
-              value={roadAddress}
-              onChangeText={setRoadAddress}
-            />
-            <View style={styles.textContainer}>
-              <Text style={styles.textLabel}>Latitude: </Text>
-              <Text style={styles.textValue}>{latitude}</Text>
+          <ScrollView style={{ margin: 20 }}>
+            <View style={styles.modalContent}>
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="sido_name"
+                value={sidoName}
+                onChangeText={setSidoName}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="gu_name"
+                value={guName}
+                onChangeText={setGuName}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="road_name"
+                value={roadName}
+                onChangeText={setRoadName}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="detail_location(선택사항)"
+                value={detailLocation}
+                onChangeText={setDetailLocation}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="road_address"
+                value={roadAddress}
+                onChangeText={setRoadAddress}
+              />
+              <View style={styles.textContainer}>
+                <Text style={styles.textLabel}>Latitude: </Text>
+                <Text style={styles.textValue}>{latitude}</Text>
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={styles.textLabel}>Longitude: </Text>
+                <Text style={styles.textValue}>{longitude}</Text>
+              </View>
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="place_type"
+                value={placeType}
+                onChangeText={setPlaceType}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="trash_type"
+                value={trashType}
+                onChangeText={setTrashType}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="form"
+                value={form}
+                onChangeText={setForm}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="install_year"
+                value={installYear}
+                onChangeText={setInstallYear}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="admin_name"
+                value={adminName}
+                onChangeText={setAdminName}
+              />
+              <TextInput
+                style={styles.ModalInput}
+                placeholder="admin_phone"
+                value={adminPhone}
+                onChangeText={handleInputChange}
+                keyboardType="numeric"
+                maxLength={13}
+              />
+              <Button onPress={AddBin} disabled={isAdding}>
+                추가
+              </Button>
+              <Button onPress={closeModal} disabled={isAdding}>
+                닫기
+              </Button>
             </View>
-            <View style={styles.textContainer}>
-              <Text style={styles.textLabel}>Longitude: </Text>
-              <Text style={styles.textValue}>{longitude}</Text>
-            </View>
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="place_type"
-              value={placeType}
-              onChangeText={setPlaceType}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="trash_type"
-              value={trashType}
-              onChangeText={setTrashType}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="form"
-              value={form}
-              onChangeText={setForm}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="install_year"
-              value={installYear}
-              onChangeText={setInstallYear}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="admin_name"
-              value={adminName}
-              onChangeText={setAdminName}
-            />
-            <TextInput
-              style={styles.ModalInput}
-              placeholder="admin_phone"
-              value={adminPhone}
-              onChangeText={setAdminPhone}
-            />
-            <TouchableOpacity onPress={closeModal}>
-              <Text>모달 닫기</Text>
-            </TouchableOpacity>
-          </View>
+          </ScrollView>
         </Modal>
+        <Toast
+          style={dynamicStyles.toast}
+          textStyle={{ color: dynamicStyles.toast.color }}
+        />
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginRight: 10,
-    paddingLeft: 10,
-    borderRadius: 5,
-    marginVertical: 10,
-  },
-  ModalInput: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingLeft: 10,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textContainer: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  textLabel: {
-    fontWeight: 'bold',
-  },
-});

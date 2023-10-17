@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Card, Text } from 'react-native-elements';
 import * as Location from 'expo-location';
+import { darkModeState } from "../dataState.js";
+import { useRecoilState } from "recoil";
 
 export default function App() {
   const [location, setLocation] = useState(null);
@@ -9,6 +11,7 @@ export default function App() {
   const [address, setAddress] = useState(null);
   const [plusCode, setPlusCode] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stateMode, setStateMode] = useRecoilState(darkModeState);
 
   const formatKoreanAddress = (data) => {
     // 주소 형식을 "서울특별시 강남구 XXX로 XXX(XXX동, 건물명, 12345)"로 변환
@@ -56,6 +59,29 @@ export default function App() {
     })();
   }, []);
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    card: {
+      borderRadius: 8,
+      padding: 20,
+      width: '90%',
+      elevation: 5,
+      backgroundColor: stateMode ? "#000000" : "#ffffff"
+    },
+    margin: {
+      marginBottom: 15,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    error: {
+      color: 'red',
+    },
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <Card containerStyle={styles.card}>
@@ -73,23 +99,4 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F0F0F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  card: {
-    borderRadius: 8,
-    padding: 20,
-    width: '90%',
-    elevation: 5,
-  },
-  margin: {
-    marginBottom: 15,
-  },
-  error: {
-    color: 'red',
-  },
-});
+

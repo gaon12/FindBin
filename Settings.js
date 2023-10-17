@@ -111,6 +111,24 @@ function Settings() {
 //         applyDarkMode();
 //     }, [darkMode]);
 
+useEffect(() => {
+    // AsyncStorage에서 useGPS 값을 가져옴
+    const fetchUseGPS = async () => {
+        try {
+            const storedUseGPS = await AsyncStorage.getItem('useGPS');
+            if (storedUseGPS !== null) {
+                // 문자열을 다시 불린 값으로 변환
+                setUseGPS(JSON.parse(storedUseGPS));
+            }
+        } catch (err) {
+            console.error('Error fetching useGPS:', err);
+        }
+    };
+
+    fetchUseGPS();
+}, []);
+
+
     const toggleDarkMode = () => {
         // await AsyncStorage.setItem("lightdark", !darkMode ? "dark" : "light");
         setStateMode(prevState => !prevState);
@@ -164,7 +182,7 @@ function Settings() {
 
     return (
         <>
-            <ScrollView>
+            <ScrollView style={{ backgroundColor: stateMode ? "#000" : "#fff" }}>
             <SafeAreaView
                 style={{ flex: 1, backgroundColor: stateMode ? "#000" : "#fff", marginTop: -30 }}
             >
@@ -340,7 +358,8 @@ function Settings() {
                             <Text
                                 style={[
                                     styles.settingText,
-                                    { color: stateMode ? "#fff" : "#000" },
+                                    { color: stateMode ? "#fff" : "#000"},
+                                    
                                 ]}
                             >
                                 버전
@@ -368,7 +387,7 @@ function Settings() {
                         onPress={closeModal}
                         style={ Platform.OS === "ios" ? styles.IosClosebtn : styles.AndroidClosebtn }
                     >
-                        <Text style={{ fontSize: 20, color: "#000" }}>닫기</Text>
+                        <Text style={{ fontSize: 20, color: stateMode ?'white': "black" }}>닫기</Text>
                     </TouchableOpacity>
                 </Modal>
             )}
@@ -384,7 +403,7 @@ function Settings() {
                         onPress={closeModal}
                         style={ Platform.OS === "ios" ? styles.IosClosebtn : styles.AndroidClosebtn }
                     >
-                        <Text style={{ fontSize: 20, color: "#000" }}>닫기</Text>
+                        <Text style={{ fontSize: 20, color:  stateMode? '#fff': "#000" }}>닫기</Text>
                     </TouchableOpacity>
                 </Modal>
             )}

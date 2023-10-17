@@ -373,16 +373,7 @@ export default function Inquiry() {
       "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png" // 다크모드
       : "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // 라이트 모드
 
-  // 라이트모드 다크모드
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setStateMode(false);
-      setUseOpenStreetMap(false)
-    };
-
-    fetchData();
-  }, []); // dependency 배열을 비움
+  
 
   const dynamicStyles = {
     toast: {
@@ -482,7 +473,6 @@ export default function Inquiry() {
     },
   };
 
-
   return (
     <Provider>
       <SafeAreaView style={dynamicStyles.safeArea}>
@@ -559,9 +549,9 @@ export default function Inquiry() {
                   <IOSDialog
                     isVisible={visible5}
                     onBackdropPress={toggleDialog5}
-                    style={dynamicStyles.modalStyle}
+                    overlayStyle={dynamicStyles.modalStyle}
                   >
-                    <IOSDialog.Title title="분류 선택" style={{ color: stateMode ? "#fff" : "#000" }} />
+                    <IOSDialog.Title title="분류 선택" titleStyle={{ color: stateMode ? "#fff" : "#000" }} />
                     {CATEGORIES.map((cat, i) => (
                       <CheckBox
                         key={i}

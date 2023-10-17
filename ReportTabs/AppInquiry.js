@@ -221,15 +221,6 @@ export default function AppInquiry() {
     textAlignVertical: "center",
   };
 
-  // 라이트모드 다크모드
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setStateMode(false);
-    };
-
-    fetchData();
-  }, []); // dependency 배열을 비움
 
   const dynamicStyles = {
     toast: {
@@ -245,11 +236,11 @@ export default function AppInquiry() {
     },
     // 모달의 스타일을 동적으로 설정
     modalStyle: {
-        backgroundColor: stateMode ? "#000000" : "#ffffff",
-      },
-      modalText: {
-        color: stateMode ? "#ffffff" : "#000000",
-      },
+      backgroundColor: stateMode ? "#000" : "#fff",
+    },
+    modalText: {
+      backgroundcolor: stateMode ? "#fff" : "#000",
+    },
     container: {
       flex: 1,
       padding: 16,
@@ -276,7 +267,7 @@ export default function AppInquiry() {
     },
     textArea: {
       height: 150,
-      Color: stateMode ? "#000000" : "#ffffff",
+      // Color: stateMode ? "#000000" : "#ffffff",
     },
     button: {
       marginBottom: 12,
@@ -349,7 +340,7 @@ export default function AppInquiry() {
             {Platform.OS === "android" ? ( // 안드로이드 플랫폼에서만 실행
               <Portal>
                 <Dialog visible={visible} onDismiss={hideDialog} style={dynamicStyles.modalStyle}>
-                  <Dialog.Title style={{color: stateMode ? "#fff" : "#000"}}>분류 선택</Dialog.Title>
+                <Dialog.Title style={{ color: stateMode ? "#fff" : "#000" }}>분류 선택</Dialog.Title>
                   <Dialog.Content>
                     <RadioButton.Group
                       onValueChange={(value) => {
@@ -367,7 +358,7 @@ export default function AppInquiry() {
                           labelStyle={[
                             { textAlign: "left", marginLeft: 10 },
                             { color: stateMode ? "#fff" : "#000" }  // 여기에서 다크모드에 따른 색상 변경을 적용
-                        ]}
+                          ]}
                         />
                       ))}
                     </RadioButton.Group>
@@ -377,18 +368,17 @@ export default function AppInquiry() {
             ) : (
               // iOS 플랫폼에서 실행
               <Portal>
-                <IOSDialog isVisible={visible5} onBackdropPress={toggleDialog5}style={dynamicStyles.modalStyle}
-                  >
-                  <IOSDialog.Title title="분류 선택" style={{color: stateMode ? "#fff" : "#000"}}/>
+                <IOSDialog isVisible={visible5} onBackdropPress={toggleDialog5} overlayStyle={dynamicStyles.modalStyle}>
+                <IOSDialog.Title title="분류 선택" titleStyle={{ color: stateMode ? "#fff" : "#000" }} />
                   {CATEGORIES.map((cat, i) => (
                     <CheckBox
                       key={i}
                       title={cat.label}
                       containerStyle={{
                         backgroundColor: stateMode ? "#000" : "#fff",
-                        borderWidth: 0,
+                        borderWidth: 0
                       }}
-                      textStyle={{ color: stateMode ? "#fff" : "#000" }}  
+                      textStyle={{ color: stateMode ? "#fff" : "#000" }}
                       checkedIcon="dot-circle-o"
                       uncheckedIcon="circle-o"
                       checked={checked === i}

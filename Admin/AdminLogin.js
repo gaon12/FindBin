@@ -4,6 +4,8 @@ import { Input, Button } from 'react-native-elements';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import 'react-native-get-random-values';
 import axios from "axios";
+import { darkModeState } from "../dataState.js";
+import { useRecoilState } from "recoil";
 let Picker;
 let RNPickerSelect;
 
@@ -52,10 +54,11 @@ if (Platform.OS === 'ios') {
 import provincesAndDistricts from './data/provincesAndDistricts.json';
 
 export default function AdminLogin({ closeModal }) {
-    const [province, setProvince] = useState('');
-    const [district, setDistrict] = useState('');
+    const [province, setProvince] = useState('시도');
+    const [district, setDistrict] = useState('시군구');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [stateMode, setStateMode] = useRecoilState(darkModeState);
 
     const [logoUrl, setLogoUrl] = useState(
         'https://findbin.uiharu.dev/app/src/img/logo/icon.png'
@@ -172,20 +175,88 @@ export default function AdminLogin({ closeModal }) {
             // 요청 실패 시 다음 작업을 수행하세요.
         }
     };
-
+    
+    const dynamicStyles = StyleSheet.create({
+        safeAreaView: {
+            flex: 1,
+            paddingTop: 20,
+        },
+        container: {
+            flex: 1,
+            padding: 20,
+            paddingTop: 80,
+            justifyContent: 'center',
+            backgroundColor: stateMode ? "black": 'white',
+            color:  stateMode? '#fff':'#000',
+            
+        },
+        logo: {
+            width: '100%',
+            height: 100,
+            marginBottom: 20,
+            alignSelf: 'center',
+        },
+        pickerContainer: {
+            marginBottom: 20,
+            padding:Platform.OS === 'ios' ? 20: 0,
+            borderWidth: 1,
+            borderColor: '#ced4da',
+            borderRadius: 4,
+            // backgroundColor: stateMode? '#000':'#ffffff',
+            paddingHorizontal: 10,
+            color : stateMode ? '#fff' : '#000'
+        },
+        inputContainer: {
+            marginBottom: 20,
+            backgroundColor: stateMode ?"#000000": '#f8f9fa',
+        },
+        inputInnerContainer: {
+            borderColor: stateMode? '#000':'#ced4da',
+        },
+        button: {
+            backgroundColor: '#343a40',
+        },
+        labelStyle: {
+            marginBottom: 10,
+            fontSize: 16,
+            fontWeight: 'bold',       
+            color: stateMode ? '#fff':'#868e96', // 이 부분은 Input 컴포넌트의 라벨 색상과 일치시킵니다.
+        },
+    });
+    
+    const pickerSelectStyles = StyleSheet.create({
+        inputIOS: {
+            fontSize: 16,
+            paddingVertical: 12,
+            paddingHorizontal: 10,
+            color: stateMode? '#ffffff': '#000000',
+            label: stateMode? '#ffffff': '#000000',
+        },
+        inputAndroid: {
+            fontSize: 16,
+            paddingVertical: 8,
+            paddingHorizontal: 10,
+            color: stateMode? '#fff': '#000',
+            backgroundColor :stateMode ? '#000' :'#fff'
+        },
+        placeholder: {
+            color: stateMode? '#fff': '#000',
+        }
+    });
+    
     return (
-        <SafeAreaView style={styles.safeAreaView}>
-            <View style={styles.container}>
+        <SafeAreaView style={dynamicStyles.safeAreaView}>
+            <View style={dynamicStyles.container}>
                 <ScrollView>
                     <Image
                         source={{ uri: logoUrl }}
-                        style={styles.logo}
+                        style={dynamicStyles.logo}
                         resizeMode="contain"
                     />
-                    <Text style={styles.labelStyle}>시도 / 시군구 선택</Text>
+                    <Text style={dynamicStyles.labelStyle}>시도 / 시군구 선택</Text>
                     {Platform.OS === 'ios' ? (
                         <>
-                            <View style={styles.pickerContainer}>
+                            <View style={dynamicStyles.pickerContainer}>
                                 <RNPickerSelect
                                     onValueChange={(value) => {
                                         setProvince(value);
@@ -195,12 +266,14 @@ export default function AdminLogin({ closeModal }) {
                                         label: province,
                                         value: province,
                                     }))}
-                                    placeholder={{ label: '시도', value: null }}
-                                    style={pickerSelectStyles}
+                                    placeholder={{ label:`${province}`}}
                                     useNativeAndroidPickerStyle={false}
+                                    value={province}
+                                    style={pickerSelectStyles.inputIOS}
+                                    
                                 />
                             </View>
-                            <View style={styles.pickerContainer}>
+                            <View style={dynamicStyles.pickerContainer}>
                                 <RNPickerSelect
                                     onValueChange={(value) => setDistrict(value)}
                                     value={district}
@@ -208,36 +281,38 @@ export default function AdminLogin({ closeModal }) {
                                         label: district,
                                         value: district,
                                     }))}
-                                    placeholder={{ label: '시군구', value: null }}
-                                    style={pickerSelectStyles}
+                                    placeholder={{label:`${district}` }}
+                                    style={pickerSelectStyles.inputIOS}
+                                    
                                     useNativeAndroidPickerStyle={false}
                                 />
                             </View>
                         </>
                     ) : (
                         <>
-                            <View style={styles.pickerContainer}>
+                            <View style={dynamicStyles.pickerContainer}>
                                 <Picker
                                     selectedValue={province}
                                     onValueChange={(itemValue) => {
                                         setProvince(itemValue);
                                         setDistrict('');
                                     }}
-                                >
-                                    <Picker.Item label="시도" value="" />
+                                    >
+                                    <Picker.Item label="시도" value=""  style={pickerSelectStyles.inputAndroid}/>
                                     {provinces.map((province, index) => (
-                                        <Picker.Item key={index} label={province} value={province} />
+                                        <Picker.Item key={index} label={province} value={province} style={pickerSelectStyles.inputAndroid}/>
                                     ))}
                                 </Picker>
                             </View>
-                            <View style={styles.pickerContainer}>
+                            <View style={dynamicStyles.pickerContainer}>
                                 <Picker
                                     selectedValue={district}
                                     onValueChange={(itemValue) => setDistrict(itemValue)}
+                                    style={pickerSelectStyles.inputAndroid}
                                 >
-                                    <Picker.Item label="시군구" value="" />
+                                    <Picker.Item label="시군구" value="" style={pickerSelectStyles.inputAndroid}/>
                                     {districts.map((district, index) => (
-                                        <Picker.Item key={index} label={district} value={district} />
+                                        <Picker.Item key={index} label={district} value={district} style={pickerSelectStyles.inputAndroid}/>
                                     ))}
                                 </Picker>
                             </View>
@@ -247,9 +322,11 @@ export default function AdminLogin({ closeModal }) {
                         label="아이디"
                         placeholder="아이디를 입력하세요"
                         value={null}
-                        containerStyle={styles.inputContainer}
-                        inputContainerStyle={styles.inputInnerContainer}
+                        containerStyle={dynamicStyles.inputContainer}
+                        inputContainerStyle={dynamicStyles.inputInnerContainer}
                         onChangeText={(text) => setUsername(text)}
+                        inputStyle={{color : stateMode ? '#fff': '#000'}}
+                        labelStyle={{color : stateMode ? '#fff': '#000'}}
                     />
 
                     <Input
@@ -258,13 +335,15 @@ export default function AdminLogin({ closeModal }) {
                         secureTextEntry
                         value={password}
                         onChangeText={(text) => setPassword(text)}
-                        containerStyle={styles.inputContainer}
-                        inputContainerStyle={styles.inputInnerContainer}
+                        containerStyle={dynamicStyles.inputContainer}
+                        inputContainerStyle={dynamicStyles.inputInnerContainer}
+                        inputStyle={{color : stateMode ? '#fff': '#000'}}
+                        labelStyle={{color : stateMode ? '#fff': '#000'}}
                     />
                     <Button
                         title="로그인"
                         onPress={Login}
-                        buttonStyle={styles.button}
+                        buttonStyle={dynamicStyles.button}
                     />
                 </ScrollView>
             </View>
@@ -272,60 +351,3 @@ export default function AdminLogin({ closeModal }) {
     );
 }
 
-const styles = StyleSheet.create({
-    safeAreaView: {
-        flex: 1,
-        backgroundColor: '#f8f9fa',
-        paddingTop: 20,
-    },
-    container: {
-        flex: 1,
-        padding: 20,
-        paddingTop: 80,
-        justifyContent: 'center',
-    },
-    logo: {
-        width: '100%',
-        height: 100,
-        marginBottom: 20,
-        alignSelf: 'center',
-    },
-    pickerContainer: {
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#ced4da',
-        borderRadius: 4,
-        backgroundColor: '#ffffff',
-        paddingHorizontal: 10,
-    },
-    inputContainer: {
-        marginBottom: 20,
-    },
-    inputInnerContainer: {
-        borderColor: '#ced4da',
-    },
-    button: {
-        backgroundColor: '#343a40',
-    },
-    labelStyle: {
-        marginBottom: 10,
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#868e96', // 이 부분은 Input 컴포넌트의 라벨 색상과 일치시킵니다.
-    },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-    inputIOS: {
-        fontSize: 16,
-        paddingVertical: 12,
-        paddingHorizontal: 10,
-        color: 'black',
-    },
-    inputAndroid: {
-        fontSize: 16,
-        paddingVertical: 8,
-        paddingHorizontal: 10,
-        color: 'black',
-    },
-});

@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import { ProgressBar, Button, Text, Card } from "react-native-paper";
 import axios from "axios";
+import { darkModeState } from "../dataState.js";
+import { useRecoilState } from "recoil";
 
 const randomCoordinates = () => {
   const lat = (20 + Math.random() * 40).toFixed(6);
@@ -257,6 +259,7 @@ export default function WhatIsThisPageOne() {
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showMain, setShowMain] = useState(true);
+  const [stateMode, setStateMode] = useRecoilState(darkModeState);
 
   const startGame = () => {
     setShowMain(false);
@@ -314,6 +317,87 @@ export default function WhatIsThisPageOne() {
     return () => clearInterval(timer);
   }, [selected, time, showModal]);
 
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: "center",
+      padding: 16,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+    },
+    controlButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 20,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    questionCard: {
+      marginBottom: 16,
+      alignItems: "center", // 가운데 정렬을 위해 추가
+      justifyContent: "space-between", // 위아래 중앙 정렬을 위해 추가
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+    },
+    cardTitle: {
+      marginBottom: 10,
+      fontSize: 20,
+      textAlign: "center", // 가로 중앙 정렬
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    cardSubtitle: {
+      fontSize: 16,
+      color: "#666", // 부제목(위도, 경도)의 글자색 변경
+    },
+    progressBar: {
+      height: 10,
+      marginBottom: 16,
+    },
+    coordinate: {
+      textAlign: "center",
+      marginTop: 3,
+    },
+    timer: {
+      fontSize: 24,
+      fontWeight: "bold",
+      textAlign: "center",
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    buttonContainer: {
+      flexDirection: "column",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+    button: {
+      marginBottom: 10, // 버튼 간의 여백 추가
+      width: "100%", // 버튼의 너비를 100%로 설정
+    },
+    modalBackground: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modal: {
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+      padding: 16,
+      borderRadius: 8,
+      width: "80%",
+      
+    },
+    modalText: {
+      fontSize: 24,
+      marginBottom: 8,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    modalAnswer: {
+      fontSize: 18,
+      marginBottom: 16,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+  });
+
   return (
     <View style={styles.container}>
       {showMain ? (
@@ -331,7 +415,7 @@ export default function WhatIsThisPageOne() {
             <View
               style={{ alignItems: "center", justifyContent: "center", flex: 1 }}
             >
-              <Text style={{ fontSize: 24, marginBottom: 20 }}>
+              <Text style={{ fontSize: 24, marginBottom: 20, color: stateMode ? "#ffffff" : "#000000", }}>
                 문제 출제 중...
               </Text>
               <ProgressBar
@@ -396,75 +480,4 @@ export default function WhatIsThisPageOne() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
-  },
-  controlButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  questionCard: {
-    marginBottom: 16,
-    alignItems: "center", // 가운데 정렬을 위해 추가
-    justifyContent: "space-between", // 위아래 중앙 정렬을 위해 추가
-  },
-  cardTitle: {
-    marginBottom: 10,
-    fontSize: 20,
-    textAlign: "center", // 가로 중앙 정렬
-  },
-  cardSubtitle: {
-    fontSize: 16,
-    color: "#666", // 부제목(위도, 경도)의 글자색 변경
-  },
-  progressBar: {
-    height: 10,
-    marginBottom: 16,
-  },
-  coordinate: {
-    textAlign: "center",
-    marginTop: 3,
-  },
-  timer: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  buttonContainer: {
-    flexDirection: "column",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  button: {
-    marginBottom: 10, // 버튼 간의 여백 추가
-    width: "100%", // 버튼의 너비를 100%로 설정
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modal: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 8,
-    width: "80%",
-  },
-  modalText: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  modalAnswer: {
-    fontSize: 18,
-    marginBottom: 16,
-  },
-});
+

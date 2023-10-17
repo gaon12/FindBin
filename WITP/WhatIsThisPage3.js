@@ -4,10 +4,57 @@ import { Card } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as Location from 'expo-location';
 import axios from 'axios';
+import { darkModeState } from "../dataState.js";
+import { useRecoilState } from "recoil";
 
 const WhatIsThisPage3 = () => {
   const [weatherInfo, setWeatherInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stateMode, setStateMode] = useRecoilState(darkModeState);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+    },
+    innerContainer: {
+      flex: 1,
+      padding: 16,
+      paddingTop: 70,
+    },
+    card: {
+      borderRadius: 20,
+      backgroundColor: stateMode ? "#000000" : "#ffffff",
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    cardTitle: {
+      fontSize: 20,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    weatherInfo: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    weatherText: {
+      fontSize: 24,
+      color: stateMode ? "#ffffff" : "#000000",
+      marginBottom: 10,
+    },
+    dateText: {
+      fontSize: 16,
+      color: stateMode ? "#ffffff" : "#000000",
+    },
+    sourceText: {
+      fontSize: 16,
+      color: stateMode ? "#ffffff" : "#000000",
+      textAlign: 'center',
+    }
+  });
 
   useEffect(() => {
     (async () => {
@@ -97,48 +144,6 @@ const WhatIsThisPage3 = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
-  innerContainer: {
-    flex: 1,
-    padding: 16,
-    paddingTop: 70,
-  },
-  card: {
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  cardTitle: {
-    fontSize: 20,
-    color: '#333333',
-  },
-  weatherInfo: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  weatherText: {
-    fontSize: 24,
-    color: '#333333',
-    marginBottom: 10,
-  },
-  dateText: {
-    fontSize: 16,
-    color: '#7F7F7F',
-  },
-  sourceText: {
-    fontSize: 16,
-    color: '#7F7F7F',
-    textAlign: 'center',
-  }
-});
+
 
 export default WhatIsThisPage3;
